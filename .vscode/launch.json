@@ -1,0 +1,8 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        { "name": "DEV", "request": "launch", "type": "dart", "flutterMode": "debug", "program": "lib/main.dart", "args": ["--flavor", "dev", "--target", "lib/main.dart"] },
+        { "name": "STAGING", "request": "launch", "type": "dart", "flutterMode": "debug", "program": "lib/main.dart", "args": ["--flavor", "staging", "--target", "lib/main.dart"] },
+        { "name": "PROD", "request": "launch", "type": "dart", "flutterMode": "release", "program": "lib/main.dart", "args": ["--flavor", "production", "--target", "lib/main.dart"] }
+    ]
+}

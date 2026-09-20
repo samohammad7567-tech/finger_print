@@ -1,0 +1,91 @@
+@host = http://localhost:5080
+@token = paste-the-token-from-the-login-response
+
+### Health
+GET {{host}}/health
+
+### Sign in (development seed account)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@guardsync.local",
+  "password": "Admin@12345"
+}
+
+### Current user
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Create an employee
+POST {{host}}/api/employees
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "employee_id": "E-1001",
+  "full_name": "Sara Ahmed",
+  "department": "Operations",
+  "position": "Technician",
+  "phone": "+966500000000",
+  "has_housing": true,
+  "has_travel_permission": false,
+  "is_active": true
+}
+
+### Active employees
+GET {{host}}/api/employees?activeOnly=true
+Authorization: Bearer {{token}}
+
+### Check an employee in
+POST {{host}}/api/attendance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "employee_id": "00000000-0000-0000-0000-000000000000",
+  "date": "2026-08-15",
+  "check_in_time": "08:55",
+  "status": "present",
+  "guard_name": "Administrator"
+}
+
+### Today's records
+GET {{host}}/api/attendance?date=2026-08-15
+Authorization: Bearer {{token}}
+
+### Check out (partial update)
+PATCH {{host}}/api/attendance/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "check_out_time": "16:10",
+  "is_early_leave": true
+}
+
+### Monthly early-leave count
+GET {{host}}/api/attendance/early-leaves/count?employee_id=00000000-0000-0000-0000-000000000000&year_month=2026-08
+Authorization: Bearer {{token}}
+
+### Create a permission
+POST {{host}}/api/permissions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "employee_id": "00000000-0000-0000-0000-000000000000",
+  "permission_type": "vacation",
+  "date": "2026-08-20",
+  "reason": "Family event",
+  "status": "approved",
+  "approved_by": "Administrator"
+}
+
+### Unread notification count
+GET {{host}}/api/notifications/unread-count
+Authorization: Bearer {{token}}
+
+### Mark every notification read
+PATCH {{host}}/api/notifications/read-all
+Authorization: Bearer {{token}}

@@ -1,0 +1,8 @@
+# Tests tagged `probe` talk to the physical ZKTeco terminal over the LAN.
+# They are skipped by default so `flutter test` stays hermetic, and are opted
+# into per file:
+#
+#   flutter test test/device_live_test.dart --run-skipped
+tags:
+  probe:
+    skip: "needs the terminal on the network — run with --run-skipped"

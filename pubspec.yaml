@@ -1,0 +1,56 @@
+name: attendence
+description: "GuardSync - Attendance Management System"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.12.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_bloc: ^9.1.0
+  get_it: ^8.0.3
+  go_router: ^15.1.2
+  easy_localization: ^3.0.7+1
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
+  # fluttertoast: ^8.2.12
+  google_fonts: ^6.2.1
+  dio: ^5.7.0
+
+  # Local storage. sqflite has no Windows implementation, so the desktop build
+  # goes through sqflite_common_ffi against the bundled SQLite library.
+  sqflite_common_ffi: ^2.3.4
+  path: ^1.9.0
+  path_provider: ^2.1.5
+
+  # Talks to the ZKTeco terminal over TCP on port 4370.
+  flutter_zkteco: ^1.2.0
+
+  # Password hashing for the local account store.
+  crypto: ^3.0.6
+  # Held at 3.12: 3.13 moved to xml 7, which excel (capped at xml <7) cannot
+  # live with. 3.13 added only lint fixes, PdfException and SVG hardening —
+  # nothing the reports use — so the export keeps its Excel file instead.
+  pdf: ^3.12.0
+  bidi: ^2.0.13
+
+  # Real .xlsx for the monthly punch export — an employee disputing their own
+  # month needs a file they can open, filter and hand back.
+  excel: ^4.0.6
+
+  # The native save dialog, so the admin decides where the monthly
+  # workbook lands rather than hunting for it afterwards.
+  file_selector: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/translations/

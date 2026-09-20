@@ -1,0 +1,9 @@
+{
+    "dart.flutterSdkPath": "C:\\src\\flutter",
+    "dart.sdkPath": "C:\\src\\flutter\\bin\\cache\\dart-sdk",
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/build/**": true
+    }
+}
