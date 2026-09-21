@@ -161,7 +161,14 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   Future<void> _save() async {
     // The department is no longer required: "no department" is a real answer,
     // and the only one at a site with a single department.
-    if (_nameCtrl.text.trim().isEmpty) return;
+    //
+    // The name is the one thing that cannot be left out, and it is refused out
+    // loud: a Save button that does nothing at all reads as a broken button,
+    // not as a missing field.
+    if (_nameCtrl.text.trim().isEmpty) {
+      AppToast.error(context, LangKeys.errorEmployeeNameRequired.tr());
+      return;
+    }
 
     // A shift is required as soon as there is one to choose. Which working day
     // somebody is on decides what every one of their punches means, so it is
@@ -195,10 +202,21 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final deviceUserId = enrollment.state.deviceUserId;
     if (deviceUserId != null) data['device_user_id'] = deviceUserId;
 
-    await context.read<EmployeeManagementCubit>().saveEmployee(
+    final saved = await context.read<EmployeeManagementCubit>().saveEmployee(
       data,
       editId: widget.employee?.id,
     );
+
+    if (!mounted) return;
+
+    // A failed save leaves the sheet up with everything still typed in — the
+    // list behind it is reporting why, and closing would throw the work away.
+    // The button comes back only here: on the way to a successful close it
+    // stays disabled, so the name push cannot be interrupted by a second save.
+    if (!saved) {
+      setState(() => _saving = false);
+      return;
+    }
 
     // Keeps the name on the device in step with the name in the app.
     await enrollment.pushName(_nameCtrl.text);

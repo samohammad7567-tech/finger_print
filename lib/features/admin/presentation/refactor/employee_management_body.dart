@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../attendance/data/models/employee_model.dart';
 import '../cubit/employee_management_cubit.dart';
@@ -28,24 +29,16 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
   Widget build(BuildContext context) {
     return BlocListener<EmployeeManagementCubit, EmployeeManagementState>(
       listener: (context, state) {
+        // Shown through the app's root overlay rather than as a SnackBar. A
+        // SnackBar is painted inside this Scaffold, so anything reported while
+        // the employee sheet is open — which is every save — was drawn behind
+        // it and timed out unseen.
         if (state.errorKey != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorKey!.tr()),
-              backgroundColor: context.color.destructive,
-              duration: const Duration(seconds: 4),
-            ),
-          );
+          AppToast.error(context, state.errorKey!.tr());
         }
 
         if (state.successKey != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_successText(state)),
-              backgroundColor: context.color.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          AppToast.success(context, _successText(state));
         }
 
         // The report opens over the list the import has already refreshed, so

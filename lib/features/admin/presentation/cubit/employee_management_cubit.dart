@@ -410,7 +410,13 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
     }
   }
 
-  Future<void> saveEmployee(Map<String, dynamic> data, {String? editId}) async {
+  /// Returns whether the write actually landed, so the form knows whether it
+  /// may close. A sheet that closes on a failed save reads as a successful one,
+  /// and the employee the admin just typed in is gone with no way back.
+  Future<bool> saveEmployee(
+    Map<String, dynamic> data, {
+    String? editId,
+  }) async {
     emit(state.copyWith(isSaving: true, errorKey: null, successKey: null));
     try {
       if (editId != null) {
@@ -427,10 +433,15 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
 
       // Refresh list after save
       await load();
-    } catch (e) {
+      return true;
+    } on ApiException catch (e) {
+      emit(state.copyWith(isSaving: false, errorKey: e.errorKey));
+      return false;
+    } catch (_) {
       emit(
         state.copyWith(isSaving: false, errorKey: LangKeys.failedSaveEmployee),
       );
+      return false;
     }
   }
 

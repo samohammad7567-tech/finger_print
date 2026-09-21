@@ -139,6 +139,7 @@
   "employee_deleted": "تم حذف الموظف بنجاح",
   "employee_deactivated": "تم إلغاء تنشيط الموظف",
   "employee_activated": "تم تنشيط الموظف",
+  "error_employee_name_required": "أدخل اسم الموظف الكامل",
   "failed_load_employees": "فشل في تحميل الموظفين",
   "failed_save_employee": "فشل في حفظ الموظف",
   "failed_delete_employee": "فشل في حذف الموظف",

@@ -139,6 +139,7 @@
   "employee_deleted": "Employee deleted successfully",
   "employee_deactivated": "Employee deactivated",
   "employee_activated": "Employee activated",
+  "error_employee_name_required": "Enter the employee's full name",
   "failed_load_employees": "Failed to load employees",
   "failed_save_employee": "Failed to save employee",
   "failed_delete_employee": "Failed to delete employee",

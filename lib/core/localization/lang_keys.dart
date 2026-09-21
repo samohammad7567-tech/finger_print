@@ -170,6 +170,7 @@ class LangKeys {
   static const employeeDeleted = 'employee_deleted';
   static const employeeDeactivated = 'employee_deactivated';
   static const employeeActivated = 'employee_activated';
+  static const errorEmployeeNameRequired = 'error_employee_name_required';
   static const failedLoadEmployees = 'failed_load_employees';
   static const failedSaveEmployee = 'failed_save_employee';
   static const failedDeleteEmployee = 'failed_delete_employee';
