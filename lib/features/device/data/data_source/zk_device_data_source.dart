@@ -150,6 +150,86 @@ class ZkDeviceDataSource {
     });
   }
 
+  // ------------------------------------------------- wiping and rebooting it
+
+  /// Wipes or reboots the terminal.
+  ///
+  /// Nothing here touches this app's database. Punches already pulled off the
+  /// device, the attendance rows folded from them and the employee records all
+  /// survive — a reset is maintenance on the terminal, not on the history.
+  ///
+  /// The protocol has no "clear the people but keep the log" command:
+  /// `CMD_CLEAR_DATA` drops the whole data area, and on a good deal of firmware
+  /// that takes the attendance log with it. [ZkResetAction.enrolledUsers]
+  /// therefore warns about the log rather than promising to keep it.
+  Future<void> resetDevice(
+    DeviceSettingsModel settings,
+    ZkResetAction action,
+  ) async {
+    return _withDevice(settings, (device) async {
+      switch (action) {
+        case ZkResetAction.attendanceLog:
+          await _expectAck(device, Util.CMD_CLEAR_ATT_LOG);
+          await _flush(device);
+
+        case ZkResetAction.enrolledUsers:
+          await _expectAck(device, Util.CMD_CLEAR_DATA);
+          // Administrators sit outside the user table on most firmware.
+          // Leaving them behind on a unit whose users are gone locks the
+          // terminal's own menu against everybody, including the admin who is
+          // about to re-enrol the staff.
+          await _optional(() => device.command(Util.CMD_CLEAR_ADMIN));
+          await _flush(device);
+
+        case ZkResetAction.everything:
+          await _expectAck(device, Util.CMD_CLEAR_DATA);
+          await _optional(() => device.command(Util.CMD_CLEAR_ADMIN));
+          // Sent explicitly rather than trusted to the data wipe: firmware
+          // disagrees on whether CMD_CLEAR_DATA includes the log, and
+          // "everything" has to mean it on all of them.
+          await _optional(() => device.command(Util.CMD_CLEAR_ATT_LOG));
+          await _flush(device);
+
+        case ZkResetAction.restart:
+          // Sent raw. The package's own `restart()` feeds the reply map to
+          // `String.fromCharCodes`, which throws before the caller ever learns
+          // the command went out.
+          //
+          // The reply itself is optional: the unit is already going down, and
+          // several models never answer at all. A timeout here means the
+          // reboot started, not that it failed.
+          await _optional(
+            () => device
+                .command(Util.CMD_RESTART, commandString: const [0, 0])
+                .timeout(const Duration(seconds: 5)),
+          );
+      }
+    });
+  }
+
+  /// Sends a command whose acknowledgement decides whether it worked.
+  ///
+  /// A wipe that the terminal refused must not be reported as done — the whole
+  /// point of the button is that the admin then stops worrying about the data.
+  static Future<void> _expectAck(ZKTeco device, int command) async {
+    final reply = await device.command(command);
+    if (reply['status'] != true) {
+      throw const ApiException(LangKeys.errorDeviceResetFailed);
+    }
+  }
+
+  /// Tells the terminal to commit the wipe and reload its own caches.
+  ///
+  /// Optional because not every firmware implements it, but worth sending:
+  /// without it some units keep answering from the in-memory copy of the table
+  /// that was just deleted, which reads as a reset that did nothing.
+  static Future<void> _flush(ZKTeco device) async {
+    await _optional(() => device.command(_cmdRefreshData));
+  }
+
+  /// `CMD_REFRESHDATA`. The package has no constant for it and never sends it.
+  static const _cmdRefreshData = 1013;
+
   /// Opens a session, runs [action], and always closes the session afterwards.
   ///
   /// Most ZKTeco terminals allow a single SDK connection at a time, so leaking
@@ -256,3 +336,10 @@ class ZkConnectionInfo {
     return time == null ? null : DateTime.now().difference(time).abs();
   }
 }
+
+/// What a reset does to the terminal, from the mildest to the most final.
+///
+/// [restart] is the odd one out and loses no data at all; it lives here because
+/// it is the other thing an admin standing in front of a misbehaving terminal
+/// wants to try.
+enum ZkResetAction { attendanceLog, enrolledUsers, everything, restart }

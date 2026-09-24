@@ -6,6 +6,7 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../attendance/data/repos/attendance_repo.dart';
 import '../../../attendance/data/repos/day_closing_repo.dart';
+import '../../data/data_source/zk_device_data_source.dart';
 import '../../data/models/device_settings_model.dart';
 import '../../data/repos/device_repo.dart';
 import 'device_state.dart';
@@ -230,6 +231,71 @@ class DeviceCubit extends Cubit<DeviceState> {
       emit(state.copyWith(isTesting: false, error: LangKeys.errorUnknown));
     }
   }
+
+  /// Wipes or reboots the terminal itself.
+  ///
+  /// Nothing local is cleared by any of these. The punches already synced, the
+  /// attendance rows folded from them and the employee records all stay — the
+  /// reset only empties what the device is still holding. That distinction is
+  /// the reason the confirm dialog spells it out: "reset the device" is also
+  /// how an admin would phrase "start the attendance history over".
+  Future<void> resetDevice(ZkResetAction action) async {
+    if (state.isBusy) return;
+    emit(
+      state.copyWith(
+        resettingAction: action,
+        clearError: true,
+        clearMessage: true,
+      ),
+    );
+
+    try {
+      await _repo.resetDevice(state.settings, action);
+
+      // Everything on screen about the terminal described the unit as it was
+      // before the wipe. The enrolment list especially: leaving the old one up
+      // would invite an admin to map somebody onto an id the device no longer
+      // has.
+      final clearedUsers =
+          action == ZkResetAction.enrolledUsers ||
+          action == ZkResetAction.everything;
+
+      emit(
+        state.copyWith(
+          clearResettingAction: true,
+          clearConnection: true,
+          deviceUsers: clearedUsers ? const [] : null,
+          message: _resetMessage(action),
+        ),
+      );
+      _clearMessage();
+
+      // A reboot takes the live session down with it. Re-arming once the unit
+      // is back is what keeps punches flowing without the admin having to
+      // reopen this screen; the wait is generous because a terminal that is
+      // still booting refuses the connection outright.
+      if (action == ZkResetAction.restart) {
+        await Future<void>.delayed(const Duration(seconds: 25));
+        if (!isClosed) await _restartLiveCapture(state.settings);
+      }
+    } on ApiException catch (e) {
+      emit(state.copyWith(error: e.errorKey, clearResettingAction: true));
+    } catch (_) {
+      emit(
+        state.copyWith(
+          error: LangKeys.errorUnknown,
+          clearResettingAction: true,
+        ),
+      );
+    }
+  }
+
+  static String _resetMessage(ZkResetAction action) => switch (action) {
+    ZkResetAction.attendanceLog => LangKeys.deviceResetLogDone,
+    ZkResetAction.enrolledUsers => LangKeys.deviceResetUsersDone,
+    ZkResetAction.everything => LangKeys.deviceResetAllDone,
+    ZkResetAction.restart => LangKeys.deviceRestartSent,
+  };
 
   /// The admin's answer to one held-back import: this terminal user is the
   /// employee already on file.

@@ -37,6 +37,10 @@ class DeviceState {
   final bool isSyncing;
   final bool isLoadingUsers;
 
+  /// The wipe or reboot currently running on the terminal, so only its own row
+  /// shows a spinner while the rest of the maintenance card stays readable.
+  final ZkResetAction? resettingAction;
+
   /// A session is held open and punches are arriving as they happen.
   final bool isLive;
 
@@ -60,13 +64,18 @@ class DeviceState {
     this.isTesting = false,
     this.isSyncing = false,
     this.isLoadingUsers = false,
+    this.resettingAction,
     this.isLive = false,
     this.lastLivePunchAt,
     this.error,
     this.message,
   });
 
-  bool get isBusy => isTesting || isSyncing || isLoadingUsers;
+  bool get isBusy =>
+      isTesting || isSyncing || isLoadingUsers || isResetting;
+
+  /// A reset holds the terminal's only session, so nothing else may start.
+  bool get isResetting => resettingAction != null;
 
   bool get hasPendingMatches => pendingMatches.isNotEmpty;
 
@@ -97,6 +106,7 @@ class DeviceState {
     bool? isTesting,
     bool? isSyncing,
     bool? isLoadingUsers,
+    ZkResetAction? resettingAction,
     bool? isLive,
     DateTime? lastLivePunchAt,
     String? error,
@@ -105,6 +115,7 @@ class DeviceState {
     bool clearMessage = false,
     bool clearConnection = false,
     bool clearResolvingMatch = false,
+    bool clearResettingAction = false,
   }) => DeviceState(
     settings: settings ?? this.settings,
     connection: clearConnection ? null : (connection ?? this.connection),
@@ -120,6 +131,9 @@ class DeviceState {
     isTesting: isTesting ?? this.isTesting,
     isSyncing: isSyncing ?? this.isSyncing,
     isLoadingUsers: isLoadingUsers ?? this.isLoadingUsers,
+    resettingAction: clearResettingAction
+        ? null
+        : (resettingAction ?? this.resettingAction),
     isLive: isLive ?? this.isLive,
     lastLivePunchAt: lastLivePunchAt ?? this.lastLivePunchAt,
     error: clearError ? null : (error ?? this.error),

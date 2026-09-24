@@ -12,6 +12,8 @@ import '../widgets/employee_import_button.dart';
 import '../widgets/employee_import_result_dialog.dart';
 import '../widgets/employee_match_banner.dart';
 import '../widgets/employee_device_fetch_button.dart';
+import '../widgets/employee_device_push_button.dart';
+import '../widgets/employee_device_push_dialog.dart';
 import '../widgets/employee_name_clash_dialog.dart';
 import '../widgets/employee_restore_dialog.dart';
 import '../../../../core/style/theme/context_extension.dart';
@@ -63,6 +65,14 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
           showEmployeeRestoreDialog(context, fetch);
         }
 
+        // A push that has been planned but not written. The plan arrives once,
+        // on the transition, and the dialog is where it is approved — nothing
+        // reaches the terminal until the admin presses send.
+        final plan = state.pushPlan;
+        if (plan != null) {
+          showEmployeeDevicePushDialog(context, plan);
+        }
+
         // A fetch that turned up names appearing twice. Opened from the
         // listener rather than the builder so it fires once, on the transition,
         // instead of every time the list rebuilds behind it.
@@ -92,55 +102,21 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    _header(context, state),
+                    const SizedBox(height: 12),
+                    // A Wrap with the full width to itself, rather than four
+                    // buttons squeezed in beside the heading: on a narrow
+                    // window they now run to a second line instead of
+                    // overflowing the row.
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                LangKeys.adminEmployeeMgmt.tr(),
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (state.hasEmployees)
-                                Text(
-                                  '${state.employees.length} ${LangKeys.employees.tr()}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                )
-                              else
-                                Text(
-                                  LangKeys.noEmployees.tr(),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            EmployeeDeviceFetchButton(state: state),
-                            const SizedBox(width: 8),
-                            EmployeeImportButton(state: state),
-                            const SizedBox(width: 8),
-                            _addButton(context, state),
-                          ],
-                        ),
+                        EmployeeDeviceFetchButton(state: state),
+                        EmployeeDevicePushButton(state: state),
+                        EmployeeImportButton(state: state),
+                        _addButton(context, state),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -201,6 +177,29 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
           );
         },
       ),
+    );
+  }
+
+  /// The title and the headcount under it.
+  Widget _header(BuildContext context, EmployeeManagementState state) {
+    final faded = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.5);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          LangKeys.adminEmployeeMgmt.tr(),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          state.hasEmployees
+              ? '${state.employees.length} ${LangKeys.employees.tr()}'
+              : LangKeys.noEmployees.tr(),
+          style: TextStyle(fontSize: 12, color: faded),
+        ),
+      ],
     );
   }
 
@@ -410,6 +409,23 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
   /// to add.
   String _successText(EmployeeManagementState state) {
     final base = state.successKey!.tr();
+
+    // A push says how many the terminal took and how many it refused. A push
+    // that wrote sixty and had four refused is an ordinary outcome on a unit
+    // that is nearly full, and "done" alone would hide it.
+    final push = state.pushResult;
+    if (push != null) {
+      return [
+        base,
+        '${LangKeys.devicePushWritten.tr()}: ${push.written}',
+        if (push.hasFailures)
+          '${LangKeys.devicePushRefused.tr()}: ${push.failed}',
+        if (push.stopped) LangKeys.errorDevicePushStopped.tr(),
+        if (push.hasUnlinked)
+          '${LangKeys.deviceUnmapped.tr()}: ${push.unlinked}',
+      ].join(' · ');
+    }
+
     final result = state.deviceFetchResult;
     if (result == null) return base;
 

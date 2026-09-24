@@ -268,6 +268,27 @@ class LangKeys {
   static const deviceLoadUsers = 'device_load_users';
   static const deviceEnrolledUsers = 'device_enrolled_users';
 
+  // ------------------------------------------ wiping and rebooting the unit
+  static const deviceMaintenance = 'device_maintenance';
+  static const deviceMaintenanceHint = 'device_maintenance_hint';
+  static const deviceResetLog = 'device_reset_log';
+  static const deviceResetLogHint = 'device_reset_log_hint';
+  static const deviceResetUsers = 'device_reset_users';
+  static const deviceResetUsersHint = 'device_reset_users_hint';
+  static const deviceResetAll = 'device_reset_all';
+  static const deviceResetAllHint = 'device_reset_all_hint';
+  static const deviceRestart = 'device_restart';
+  static const deviceRestartHint = 'device_restart_hint';
+  static const deviceResetConfirmTitle = 'device_reset_confirm_title';
+  static const deviceResetKeepsLocal = 'device_reset_keeps_local';
+  static const deviceResetIrreversible = 'device_reset_irreversible';
+  static const deviceResetRunning = 'device_reset_running';
+  static const deviceResetLogDone = 'device_reset_log_done';
+  static const deviceResetUsersDone = 'device_reset_users_done';
+  static const deviceResetAllDone = 'device_reset_all_done';
+  static const deviceRestartSent = 'device_restart_sent';
+  static const errorDeviceResetFailed = 'error_device_reset_failed';
+
   // ------------------------------------------------------- punch report
   static const reportPunchTitle = 'report_punch_title';
   static const reportCheckIn = 'report_check_in';
@@ -364,6 +385,30 @@ class LangKeys {
   static const deviceFetchHeld = 'device_fetch_held';
   static const deviceFetchRead = 'device_fetch_read';
   static const deviceFetchDeleted = 'device_fetch_deleted';
+
+  // ------------------------------------- sending the staff list to the device
+  static const devicePush = 'device_push';
+  static const devicePushing = 'device_pushing';
+  static const devicePushHint = 'device_push_hint';
+  static const devicePushPreparing = 'device_push_preparing';
+  static const devicePushTitle = 'device_push_title';
+  static const devicePushIntro = 'device_push_intro';
+  static const devicePushKeepsFingerprints = 'device_push_keeps_fingerprints';
+  static const devicePushNew = 'device_push_new';
+  static const devicePushUpdate = 'device_push_update';
+  static const devicePushExtra = 'device_push_extra';
+  static const devicePushExtraHint = 'device_push_extra_hint';
+  static const devicePushTruncated = 'device_push_truncated';
+  static const devicePushTruncatedHint = 'device_push_truncated_hint';
+  static const devicePushCapacity = 'device_push_capacity';
+  static const devicePushConfirm = 'device_push_confirm';
+  static const devicePushNothing = 'device_push_nothing';
+  static const devicePushNobody = 'device_push_nobody';
+  static const devicePushDone = 'device_push_done';
+  static const devicePushWritten = 'device_push_written';
+  static const devicePushRefused = 'device_push_refused';
+  static const errorDevicePushStopped = 'error_device_push_stopped';
+  static const errorDevicePushFailed = 'error_device_push_failed';
 
   static const restoreTitle = 'restore_title';
   static const restoreHint = 'restore_hint';
@@ -557,4 +602,50 @@ class LangKeys {
   static const backupNow = 'backup_now';
   static const backupDone = 'backup_done';
   static const backupFailed = 'backup_failed';
+
+  // ------------------------------------------- putting a backup back in place
+  static const backupRestore = 'backup_restore';
+  static const backupRestoreHint = 'backup_restore_hint';
+  static const backupRestoreFileType = 'backup_restore_file_type';
+  static const backupRestorePick = 'backup_restore_pick';
+  static const backupRestoreConfirmTitle = 'backup_restore_confirm_title';
+  static const backupRestoreConfirmMsg = 'backup_restore_confirm_msg';
+  static const backupRestoreRollback = 'backup_restore_rollback';
+  static const backupRestoring = 'backup_restoring';
+  static const backupRestoreDone = 'backup_restore_done';
+  static const backupRestartHint = 'backup_restart_hint';
+  static const errorRestoreUnreadable = 'error_restore_unreadable';
+  static const errorRestoreNotDatabase = 'error_restore_not_database';
+  static const errorRestoreTooNew = 'error_restore_too_new';
+  static const errorRestoreIncomplete = 'error_restore_incomplete';
+
+  // ------------------------------------------------- clearing what is stored
+  static const dataTitle = 'data_title';
+  static const dataOnFile = 'data_on_file';
+  static const dataEmployeesCount = 'data_employees_count';
+  static const dataAttendanceDays = 'data_attendance_days';
+  static const dataPunches = 'data_punches';
+  static const dataSize = 'data_size';
+  static const dataOldest = 'data_oldest';
+  static const dataClearBefore = 'data_clear_before';
+  static const dataClearBeforeHint = 'data_clear_before_hint';
+  static const dataChooseDate = 'data_choose_date';
+  static const dataClearBeforeConfirmTitle = 'data_clear_before_confirm_title';
+  static const dataClearBeforeConfirmMsg = 'data_clear_before_confirm_msg';
+  static const dataClearBeforeWarning = 'data_clear_before_warning';
+  static const dataClearing = 'data_clearing';
+  static const dataClearDone = 'data_clear_done';
+  static const dataClearNothing = 'data_clear_nothing';
+  static const dataRemovedDays = 'data_removed_days';
+  static const dataRemovedPunches = 'data_removed_punches';
+  static const dataFreed = 'data_freed';
+  static const dataErase = 'data_erase';
+  static const dataEraseHint = 'data_erase_hint';
+  static const dataEraseConfirmTitle = 'data_erase_confirm_title';
+  static const dataEraseConfirmMsg = 'data_erase_confirm_msg';
+  static const dataEraseKept = 'data_erase_kept';
+  static const dataEraseAck = 'data_erase_ack';
+  static const dataEraseDone = 'data_erase_done';
+  static const errorDataClearFailed = 'error_data_clear_failed';
+  static const errorBackupRequired = 'error_backup_required';
 }

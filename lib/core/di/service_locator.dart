@@ -50,6 +50,8 @@ import '../../features/settings/presentation/cubit/settings_cubit.dart';
 import '../../features/shifts/data/data_source/shifts_local_data_source.dart';
 import '../../features/shifts/data/repos/shifts_repo.dart';
 import '../../features/shifts/presentation/cubit/shifts_cubit.dart';
+import '../../features/backup/data/data_source/backup_data_source.dart';
+import '../../features/backup/data/repos/backup_repo.dart';
 import '../database/app_database.dart';
 import '../storage/token_storage.dart';
 
@@ -115,6 +117,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton(() => MonthlyReportPdfDataSource());
   getIt.registerLazySingleton(() => MonthlyPunchesExcelDataSource());
   getIt.registerLazySingleton(() => EmployeeImportExcelDataSource());
+  getIt.registerLazySingleton(() => BackupDataSource(getIt<AppDatabase>()));
   getIt.registerLazySingleton(() => SettingsLocalDataSource(prefs));
   getIt.registerLazySingleton(() => WorkScheduleLocalDataSource(prefs));
 
@@ -154,6 +157,7 @@ Future<void> setupServiceLocator() async {
 
   // Repos
   getIt.registerLazySingleton(() => AuthRepo(getIt<AuthLocalDataSource>()));
+  getIt.registerLazySingleton(() => BackupRepo(getIt<BackupDataSource>()));
   getIt.registerLazySingleton(
     () => AttendanceRepo(getIt<AttendanceLocalDataSource>()),
   );

@@ -9,6 +9,7 @@ import '../cubit/device_state.dart';
 import '../widgets/device_connection_form.dart';
 import '../widgets/device_mapping_card.dart';
 import '../widgets/device_match_review_card.dart';
+import '../widgets/device_reset_card.dart';
 import '../widgets/device_status_card.dart';
 import '../widgets/device_sync_card.dart';
 
@@ -65,6 +66,8 @@ class DeviceBody extends StatelessWidget {
               DeviceMappingCard(state: state),
               const SizedBox(height: 12),
               DeviceConnectionForm(settings: state.settings),
+              const SizedBox(height: 12),
+              DeviceResetCard(state: state),
               const SizedBox(height: 24),
             ],
           ),

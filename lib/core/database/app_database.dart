@@ -36,6 +36,10 @@ class AppDatabase {
 
   Database? _db;
 
+  /// Where [init] opened the file. Kept so a restore can put the connection
+  /// back exactly where it was, having closed it to replace the file underneath.
+  String? _file;
+
   /// The open connection. Throws if [init] has not completed, which can only
   /// happen through a wiring mistake, never at runtime.
   Database get db {
@@ -61,11 +65,17 @@ class AppDatabase {
     final String file;
     if (overridePath != null) {
       file = overridePath;
+    } else if (_file != null) {
+      // Reopening after a restore closed the connection. The location was
+      // settled the first time; resolving it again would only risk landing
+      // somewhere else.
+      file = _file!;
     } else {
       final directory = await getApplicationSupportDirectory();
       await directory.create(recursive: true);
       file = p.join(directory.path, _fileName);
     }
+    _file = file;
 
     _db = await databaseFactory.openDatabase(
       file,
@@ -93,6 +103,129 @@ class AppDatabase {
   Future<void> close() async {
     await _db?.close();
     _db = null;
+  }
+
+  /// Replaces the live database with a backup taken earlier, and reopens.
+  ///
+  /// The file is checked before anything is touched, and the database it is
+  /// about to replace is copied aside first. Both matter more here than they
+  /// look: this is a single-PC install, so the file being overwritten holds
+  /// every attendance record made since that backup, and there is no server to
+  /// fetch them back from. A restore that turns out to be the wrong file has to
+  /// be survivable.
+  ///
+  /// A backup from an older schema is accepted — reopening runs the same
+  /// migrations an upgrade would. One from a *newer* build is refused, since
+  /// there is no migration backwards.
+  ///
+  /// Every data source reads the connection through [db] on each call rather
+  /// than holding one, so they all pick up the reopened database with no
+  /// rewiring.
+  Future<void> restoreFrom(String sourcePath) async {
+    final target = _file ?? db.path;
+    await _verifyRestorable(sourcePath);
+
+    // Flushed before the copy aside, or the rollback would be missing whatever
+    // is still sitting in the write-ahead log.
+    await db.execute('PRAGMA wal_checkpoint(FULL)');
+    await close();
+
+    final rollback = '$target.pre-restore';
+    try {
+      if (await File(target).exists()) await File(target).copy(rollback);
+      await File(sourcePath).copy(target);
+
+      // The sidecars belong to the database that was just replaced. Left in
+      // place, SQLite would replay them over the restored file and corrupt it.
+      await _removeSidecars(target);
+    } catch (e) {
+      try {
+        if (await File(rollback).exists()) await File(rollback).copy(target);
+        await _removeSidecars(target);
+      } catch (_) {
+        // Nothing further to try. The reopen below still runs: an app left
+        // with no connection at all is worse than one on a damaged file, and
+        // the rollback copy is still on disk to be recovered by hand.
+      }
+      await init();
+      throw DatabaseRestoreException(
+        RestoreRefusal.unreadable,
+        detail: e.toString(),
+      );
+    }
+
+    await init();
+  }
+
+  /// Refuses a file that is not a database this build can open, before the
+  /// live one has been touched.
+  Future<void> _verifyRestorable(String sourcePath) async {
+    if (!await File(sourcePath).exists()) {
+      throw const DatabaseRestoreException(RestoreRefusal.unreadable);
+    }
+
+    Database? probe;
+    try {
+      // Read-only, and outside the factory's instance cache: opening it as a
+      // second live handle on the same path is exactly what must not happen.
+      probe = await databaseFactory.openDatabase(
+        sourcePath,
+        options: OpenDatabaseOptions(readOnly: true, singleInstance: false),
+      );
+
+      // Read by hand rather than through `firstIntValue`, which the ffi
+      // package does not re-export.
+      final versionRows = await probe.rawQuery('PRAGMA user_version');
+      final version = versionRows.isEmpty
+          ? 0
+          : (versionRows.first.values.first as int? ?? 0);
+      if (version > _schemaVersion) {
+        throw DatabaseRestoreException(
+          RestoreRefusal.tooNew,
+          detail: 'v$version',
+        );
+      }
+
+      final tables = {
+        for (final row in await probe.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type = 'table'",
+        ))
+          row['name'] as String,
+      };
+      final missing = _requiredTables.difference(tables);
+      if (missing.isNotEmpty) {
+        throw DatabaseRestoreException(
+          RestoreRefusal.incomplete,
+          detail: missing.join(', '),
+        );
+      }
+    } on DatabaseRestoreException {
+      rethrow;
+    } catch (e) {
+      throw DatabaseRestoreException(
+        RestoreRefusal.notADatabase,
+        detail: e.toString(),
+      );
+    } finally {
+      try {
+        await probe?.close();
+      } catch (_) {}
+    }
+  }
+
+  /// Enough of the schema to tell one of our backups from any other SQLite
+  /// file an admin might pick by mistake.
+  static const _requiredTables = {
+    'users',
+    'employees',
+    'attendance_records',
+  };
+
+  static Future<void> _removeSidecars(String target) async {
+    for (final suffix in const ['-wal', '-shm']) {
+      final sidecar = File('$target$suffix');
+      if (await sidecar.exists()) await sidecar.delete();
+    }
   }
 
   /// Existing installs already hold real attendance, so schema changes are
@@ -533,4 +666,33 @@ class AppDatabase {
 
     await batch.commit(noResult: true);
   }
+}
+
+/// Why [AppDatabase.restoreFrom] would not take a file.
+///
+/// Kept as a reason rather than a message: this is the database layer, which
+/// has no business knowing the language. The backup data source turns each of
+/// these into a localization key.
+enum RestoreRefusal {
+  /// The path is gone, or the copy over the live file failed.
+  unreadable,
+
+  /// Not SQLite, or too damaged to open.
+  notADatabase,
+
+  /// Written by a newer build of the app. Migrations only run forwards.
+  tooNew,
+
+  /// A database, but not one of ours — the core tables are missing.
+  incomplete,
+}
+
+class DatabaseRestoreException implements Exception {
+  final RestoreRefusal reason;
+  final String? detail;
+
+  const DatabaseRestoreException(this.reason, {this.detail});
+
+  @override
+  String toString() => 'DatabaseRestoreException($reason, detail: $detail)';
 }

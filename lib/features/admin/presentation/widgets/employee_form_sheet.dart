@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../attendance/data/models/employee_model.dart';
 import '../../../departments/presentation/cubit/departments_cubit.dart';
@@ -162,16 +161,6 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     // The department is no longer required: "no department" is a real answer,
     // and the only one at a site with a single department.
     if (_nameCtrl.text.trim().isEmpty) return;
-
-    // A shift is required as soon as there is one to choose. Which working day
-    // somebody is on decides what every one of their punches means, so it is
-    // not a field to leave for later — and it is refused here rather than by a
-    // disabled button, so the admin is told which answer is missing.
-    final hasShifts = context.read<ShiftsCubit>().state.shifts.isNotEmpty;
-    if (hasShifts && _shiftId.isEmpty) {
-      AppToast.error(context, LangKeys.errorShiftRequired.tr());
-      return;
-    }
 
     setState(() => _saving = true);
     final data = {

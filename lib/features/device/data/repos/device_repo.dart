@@ -5,6 +5,7 @@ import '../data_source/zk_enrollment_data_source.dart';
 import '../data_source/zk_live_capture_data_source.dart';
 import '../models/device_settings_model.dart';
 import '../models/pending_employee_match.dart';
+import '../models/zk_push_models.dart';
 
 /// Thin delegation over the three device data sources: the terminal itself,
 /// the fold into attendance rows, and the stored connection settings.
@@ -54,6 +55,16 @@ class DeviceRepo {
 
   Future<void> syncDeviceClock(DeviceSettingsModel settings) =>
       _device.syncDeviceClock(settings);
+
+  /// Wipes or reboots the terminal.
+  ///
+  /// Local records are deliberately untouched — see
+  /// [ZkDeviceDataSource.resetDevice] for what each action does and why the
+  /// user wipe cannot promise to spare the log.
+  Future<void> resetDevice(
+    DeviceSettingsModel settings,
+    ZkResetAction action,
+  ) => _device.resetDevice(settings, action);
 
   /// A full sync: pull the enrolment list, create any employee the terminal
   /// knows about and the app plainly does not, then pull and fold the punches.
@@ -128,6 +139,27 @@ class DeviceRepo {
       readFromDevice: users.length,
     );
   }
+
+  /// What sending the staff list to the terminal would do, worked out against
+  /// a fresh read of its enrolment table and written nowhere.
+  ///
+  /// Deliberately separate from [pushUsers] so the admin approves a plan with
+  /// real counts in it rather than a button that says "send".
+  Future<ZkPushPlan> planUserPush(
+    DeviceSettingsModel settings,
+    List<ZkPushTarget> targets,
+  ) => _enrollment.planUserPush(settings, targets);
+
+  /// Writes the approved plan to the terminal in one session.
+  ///
+  /// Nothing is cleared first. Existing people are replaced in their own
+  /// enrolment slot, so their fingerprints survive; people the terminal holds
+  /// and the app does not are left alone rather than deleted.
+  Future<ZkPushReport> pushUsers(
+    DeviceSettingsModel settings,
+    ZkPushPlan plan, {
+    void Function(int done, int total)? onProgress,
+  }) => _enrollment.pushUsers(settings, plan, onProgress: onProgress);
 
   /// Everyone an admin deleted, whose enrolment the terminal may still hold.
   Future<List<({String deviceUserId, bool removedFromDevice, DateTime at})>>

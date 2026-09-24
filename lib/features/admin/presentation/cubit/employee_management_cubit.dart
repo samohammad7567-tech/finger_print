@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../attendance/data/models/employee_import_models.dart';
 import '../../../attendance/data/models/employee_model.dart';
 import '../../../attendance/data/repos/attendance_repo.dart';
+import '../../../device/data/models/zk_push_models.dart';
 import '../../../device/data/repos/device_repo.dart';
 import '../../data/data_source/employee_import_excel_data_source.dart';
 import '../../data/repos/employee_import_repo.dart';
@@ -54,6 +55,25 @@ class EmployeeManagementState {
   /// the dialog once rather than on every rebuild.
   final bool clashesNeedReview;
 
+  /// Reading the terminal to work out what sending the staff list would do.
+  /// Nothing is written while this is true.
+  final bool isPreparingPush;
+
+  /// What that read found, held only until the screen has put it in front of
+  /// the admin. Cleared on the next emit, like the other one-shot reports.
+  final ZkPushPlan? pushPlan;
+
+  /// Writing the approved plan to the terminal.
+  final bool isPushingToDevice;
+
+  /// How far through that write we are. A staff list takes long enough that a
+  /// bare spinner reads as a hang.
+  final int pushDone;
+  final int pushTotal;
+
+  /// What the last push did.
+  final DevicePushOutcome? pushResult;
+
   const EmployeeManagementState({
     this.employees = const [],
     this.isLoading = true,
@@ -71,6 +91,12 @@ class EmployeeManagementState {
     this.deletedNeedReview = false,
     this.nameClashes = const [],
     this.clashesNeedReview = false,
+    this.isPreparingPush = false,
+    this.pushPlan,
+    this.isPushingToDevice = false,
+    this.pushDone = 0,
+    this.pushTotal = 0,
+    this.pushResult,
   });
 
   List<EmployeeModel> get filtered {
@@ -94,7 +120,12 @@ class EmployeeManagementState {
   /// Any long-running write. The fetch and the import both rewrite the list, so
   /// neither may start while the other is running.
   bool get isBusy =>
-      isSaving || isDeleting || isImporting || isFetchingFromDevice;
+      isSaving ||
+      isDeleting ||
+      isImporting ||
+      isFetchingFromDevice ||
+      isPreparingPush ||
+      isPushingToDevice;
 
   EmployeeManagementState copyWith({
     List<EmployeeModel>? employees,
@@ -113,6 +144,12 @@ class EmployeeManagementState {
     bool? deletedNeedReview,
     List<EmployeeNameClash>? nameClashes,
     bool? clashesNeedReview,
+    bool? isPreparingPush,
+    ZkPushPlan? pushPlan,
+    bool? isPushingToDevice,
+    int? pushDone,
+    int? pushTotal,
+    DevicePushOutcome? pushResult,
   }) => EmployeeManagementState(
     employees: employees ?? this.employees,
     isLoading: isLoading ?? this.isLoading,
@@ -131,6 +168,14 @@ class EmployeeManagementState {
     deletedNeedReview: deletedNeedReview ?? this.deletedNeedReview,
     nameClashes: nameClashes ?? this.nameClashes,
     clashesNeedReview: clashesNeedReview ?? this.clashesNeedReview,
+    isPreparingPush: isPreparingPush ?? this.isPreparingPush,
+    // One-shot, like the fetch and import reports above: the screen opens the
+    // dialog off the transition, and the next emit takes it away.
+    pushPlan: pushPlan,
+    isPushingToDevice: isPushingToDevice ?? this.isPushingToDevice,
+    pushDone: pushDone ?? this.pushDone,
+    pushTotal: pushTotal ?? this.pushTotal,
+    pushResult: pushResult,
   );
 }
 
@@ -269,6 +314,141 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
 
   /// The restore dialog has been shown, so it does not open itself again.
   void deletedReviewed() => emit(state.copyWith(deletedNeedReview: false));
+
+  // ------------------------------------------------------------- to device
+
+  /// Works out what sending the staff list to the terminal would do, and hands
+  /// the plan to the screen to approve. **Writes nothing.**
+  ///
+  /// The plan is the whole reason this is two steps. The destructive way to
+  /// fill a terminal is to wipe it and write everybody back, and that silently
+  /// destroys every fingerprint on it — templates live on the device, the app
+  /// has never held one, and nothing here could put them back. Upserting each
+  /// person into their own enrolment slot needs no wipe at all, so what the
+  /// admin confirms is a list of names, not a clearance.
+  Future<void> preparePushToDevice() async {
+    if (state.isBusy) return;
+
+    final settings = _device.readSettings();
+    if (!settings.isConfigured) {
+      emit(state.copyWith(errorKey: LangKeys.errorDeviceNotConfigured));
+      return;
+    }
+
+    // Inactive people are left off on purpose: writing them would let somebody
+    // who has been stood down go on punching.
+    final targets = [
+      for (final employee in state.employees)
+        if (employee.isActive && employee.fullName.trim().isNotEmpty)
+          ZkPushTarget(
+            employeeId: employee.id,
+            fullName: employee.fullName,
+            deviceUserId: employee.deviceUserId,
+          ),
+    ];
+
+    if (targets.isEmpty) {
+      emit(state.copyWith(errorKey: LangKeys.devicePushNobody));
+      return;
+    }
+
+    emit(
+      state.copyWith(isPreparingPush: true, errorKey: null, successKey: null),
+    );
+    try {
+      final plan = await _device.planUserPush(settings, targets);
+      emit(state.copyWith(isPreparingPush: false, pushPlan: plan));
+    } on ApiException catch (e) {
+      emit(state.copyWith(isPreparingPush: false, errorKey: e.errorKey));
+    } catch (_) {
+      emit(
+        state.copyWith(isPreparingPush: false, errorKey: LangKeys.errorUnknown),
+      );
+    }
+  }
+
+  /// Writes the approved plan, then records the terminal ids it handed out.
+  ///
+  /// Saving those ids back matters more than it looks. An employee with no
+  /// device id is allocated one here, and if it never reaches their row the
+  /// next push allocates another — the same person ends up enrolled twice with
+  /// their punches split between the two. A row that cannot be saved is
+  /// counted and reported rather than swallowed.
+  Future<void> pushToDevice(ZkPushPlan plan) async {
+    if (state.isBusy || plan.isEmpty) return;
+
+    final settings = _device.readSettings();
+    if (!settings.isConfigured) {
+      emit(state.copyWith(errorKey: LangKeys.errorDeviceNotConfigured));
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        isPushingToDevice: true,
+        pushDone: 0,
+        pushTotal: plan.entries.length,
+        errorKey: null,
+        successKey: null,
+      ),
+    );
+
+    try {
+      final report = await _device.pushUsers(
+        settings,
+        plan,
+        onProgress: (done, total) {
+          if (isClosed) return;
+          emit(state.copyWith(pushDone: done, pushTotal: total));
+        },
+      );
+
+      final unlinked = await _saveAssignedDeviceIds(report);
+
+      await load();
+      emit(
+        state.copyWith(
+          isPushingToDevice: false,
+          pushResult: DevicePushOutcome(
+            written: report.writtenCount,
+            failed: report.failedCount,
+            stopped: report.abortedEarly,
+            unlinked: unlinked,
+          ),
+          successKey: LangKeys.devicePushDone,
+        ),
+      );
+    } on ApiException catch (e) {
+      emit(state.copyWith(isPushingToDevice: false, errorKey: e.errorKey));
+    } catch (_) {
+      emit(
+        state.copyWith(
+          isPushingToDevice: false,
+          errorKey: LangKeys.errorDevicePushFailed,
+        ),
+      );
+    }
+  }
+
+  /// Writes the freshly allocated terminal ids onto the employees that got
+  /// them, and returns how many could not be saved.
+  ///
+  /// One refusal — a duplicate id, a row deleted while the write ran — must not
+  /// cost the rest of the batch their mapping, so each is attempted on its own.
+  Future<int> _saveAssignedDeviceIds(ZkPushReport report) async {
+    var unlinked = 0;
+    for (final entry in report.written) {
+      if (!entry.assignsId) continue;
+      try {
+        await _repo.updateEmployee(entry.target.employeeId, {
+          'device_user_id': entry.deviceUserId,
+        });
+      } catch (_) {
+        unlinked++;
+      }
+    }
+    return unlinked;
+  }
 
   /// Lifts the deletion on people the terminal still knows about, then fetches
   /// them straight back in.
@@ -525,4 +705,35 @@ class DeviceFetchOutcome {
   /// The terminal answered, but nothing came of it — the case worth explaining
   /// rather than reporting as a bare zero.
   bool get isPuzzling => created == 0 && readFromDevice > 0;
+}
+
+/// What one press of "To device" actually did.
+///
+/// Reported rather than reduced to a tick: a push that wrote sixty names and
+/// had four refused is a normal outcome on a terminal that is nearly full, and
+/// the admin needs to know which four to look at.
+class DevicePushOutcome {
+  /// People the terminal accepted.
+  final int written;
+
+  /// Rows it refused, including any left untried after it stopped answering.
+  final int failed;
+
+  /// The run gave up early because the terminal stopped accepting writes.
+  final bool stopped;
+
+  /// People now on the terminal whose new id could not be saved back onto
+  /// their record. They punch fine; their scans arrive unmapped until somebody
+  /// links them on the mapping screen.
+  final int unlinked;
+
+  const DevicePushOutcome({
+    this.written = 0,
+    this.failed = 0,
+    this.stopped = false,
+    this.unlinked = 0,
+  });
+
+  bool get hasFailures => failed > 0;
+  bool get hasUnlinked => unlinked > 0;
 }

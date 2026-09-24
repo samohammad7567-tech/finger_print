@@ -9,6 +9,7 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/cp1256.dart';
 import '../models/device_settings_model.dart';
+import '../models/zk_push_models.dart';
 import 'zk_device_gate.dart';
 import 'zk_table_reader.dart';
 import 'zk_user_parser.dart';
@@ -36,6 +37,15 @@ class ZkEnrollmentDataSource {
   /// Below this a reply is the terminal's own framing, not a template. Real
   /// ones run to hundreds of bytes.
   static const _minTemplateBytes = 8;
+
+  /// The name field in a user record. Windows-1256 is one byte per character,
+  /// Arabic included, so this is 24 characters either way — and anything past
+  /// it is dropped by the write, not by the terminal's screen.
+  static const _nameBytes = 24;
+
+  /// Refusals in a row that end a bulk push. Low on purpose: past two or three
+  /// the terminal is gone, not fussy.
+  static const _maxConsecutiveFailures = 3;
 
   /// Creates or updates the person on the terminal and returns the identifiers
   /// it will file their punches under.
@@ -70,6 +80,183 @@ class ZkEnrollmentDataSource {
       await _writeUser(device, uid: uid, userId: userId, name: name);
       return ZkEnrolledUser(uid: uid, deviceUserId: userId, name: name);
     });
+  }
+
+  // -------------------------------------------------------- app -> terminal
+
+  /// Works out what writing the whole staff list to the terminal would do,
+  /// without writing anything.
+  ///
+  /// Nothing here clears the device, and that is the point. `CMD_SET_USER` is
+  /// an upsert keyed on the enrolment slot: an existing person is replaced in
+  /// place, a new one is appended, and an empty table was never a precondition.
+  /// Clearing first would be the only way to lose the fingerprint templates —
+  /// which this app does not hold and cannot put back, so every employee would
+  /// have to enrol their finger again to punch.
+  Future<ZkPushPlan> planUserPush(
+    DeviceSettingsModel settings,
+    List<ZkPushTarget> targets,
+  ) async {
+    final enrolment = await _enrolment(settings);
+    final existing = enrolment.users;
+
+    final byUserId = {
+      for (final user in existing) user.deviceUserId.trim(): user,
+    };
+
+    // Seeded from both sides. An employee can hold an id the terminal has
+    // since lost — deleted on the device, or a unit that was wiped — and
+    // handing that id to somebody else would merge two people's punches.
+    final takenIds = <String>{
+      for (final user in existing) user.deviceUserId.trim(),
+      for (final target in targets) (target.deviceUserId ?? '').trim(),
+    }..remove('');
+
+    var nextUid = _nextUid(existing);
+    var nextId = int.tryParse(_nextUserId(existing)) ?? 1;
+
+    final entries = <ZkPushEntry>[];
+    final claimed = <String>{};
+
+    for (final target in targets) {
+      final name = target.fullName.trim();
+      var userId = (target.deviceUserId ?? '').trim();
+
+      // A blank name would go to the device as an empty field and show as a
+      // nameless row. Their enrolment is still theirs, so it is claimed rather
+      // than reported as a stranger's.
+      if (name.isEmpty) {
+        if (userId.isNotEmpty) claimed.add(userId);
+        continue;
+      }
+
+      final assignsId = userId.isEmpty;
+      if (assignsId) {
+        while (takenIds.contains('$nextId')) {
+          nextId++;
+        }
+        userId = '$nextId';
+        takenIds.add(userId);
+      }
+
+      final match = byUserId[userId];
+      final uid = match?.uid ?? 0;
+
+      entries.add(
+        ZkPushEntry(
+          target: target,
+          // Reusing the slot is what keeps an enrolled finger working: the
+          // templates hang off the uid, not the user id.
+          uid: uid == 0 ? nextUid++ : uid,
+          deviceUserId: userId,
+          isNew: match == null,
+          assignsId: assignsId,
+          nameTruncated: Cp1256.encode(name).length > _nameBytes,
+        ),
+      );
+      claimed.add(userId);
+    }
+
+    return ZkPushPlan(
+      entries: entries,
+      extras: [
+        for (final user in existing)
+          if (!claimed.contains(user.deviceUserId.trim())) user,
+      ],
+      freeSlots: enrolment.freeSlots,
+      onDevice: existing.length,
+    );
+  }
+
+  /// Writes every planned row in **one** session.
+  ///
+  /// One session for the whole batch rather than a call to [upsertUser] each.
+  /// This unit wants 600ms of quiet between sessions and desyncs when it does
+  /// not get it, so a staff list of a hundred would be two hundred connections
+  /// and well over a minute of waiting — with the enrolment table re-read
+  /// every time.
+  ///
+  /// A refused row is recorded and the run carries on: one name the firmware
+  /// dislikes must not cost the other ninety-nine.
+  Future<ZkPushReport> pushUsers(
+    DeviceSettingsModel settings,
+    ZkPushPlan plan, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    if (plan.entries.isEmpty) return const ZkPushReport();
+
+    return _withDevice(settings, (device) async {
+      final written = <ZkPushEntry>[];
+      final failed = <({ZkPushEntry entry, String errorKey})>[];
+      final total = plan.entries.length;
+      var consecutiveFailures = 0;
+
+      for (var i = 0; i < total; i++) {
+        final entry = plan.entries[i];
+
+        try {
+          await _writeUser(
+            device,
+            uid: entry.uid,
+            userId: entry.deviceUserId,
+            name: entry.target.fullName.trim(),
+          );
+          written.add(entry);
+          consecutiveFailures = 0;
+        } on ApiException catch (e) {
+          failed.add((entry: entry, errorKey: e.errorKey));
+          consecutiveFailures++;
+        } catch (_) {
+          failed.add((entry: entry, errorKey: LangKeys.errorDeviceWriteFailed));
+          consecutiveFailures++;
+        }
+
+        onProgress?.call(i + 1, total);
+
+        // This many refusals in a row is not the names: the terminal has gone
+        // away or filled up. Carrying on would be ninety more timeouts and a
+        // report blaming every employee in the list.
+        if (consecutiveFailures >= _maxConsecutiveFailures) {
+          for (final untried in plan.entries.skip(i + 1)) {
+            failed.add((
+              entry: untried,
+              errorKey: LangKeys.errorDevicePushStopped,
+            ));
+          }
+          return ZkPushReport(
+            written: written,
+            failed: failed,
+            abortedEarly: true,
+          );
+        }
+      }
+
+      return ZkPushReport(written: written, failed: failed);
+    });
+  }
+
+  /// The enrolment list and the terminal's free-slot count, read together and
+  /// retried in a fresh session when the table comes back unusable — the same
+  /// bargain [_enrolledUsers] makes, with the memory figures kept.
+  Future<({List<ZkDeviceUserModel> users, int? freeSlots})> _enrolment(
+    DeviceSettingsModel settings, {
+    int attempts = 3,
+  }) async {
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      final read = await _withDevice(settings, (device) async {
+        final sizes = await _optional(() => Util.readSizes(device));
+        final users = await _readUsersOfCount(device, sizes?.users ?? -1);
+        return (users: users, freeSlots: sizes?.usersAv);
+      });
+
+      if (read.users != null) {
+        return (users: read.users!, freeSlots: read.freeSlots);
+      }
+      if (attempt < attempts) {
+        await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
+      }
+    }
+    throw const ApiException(LangKeys.errorDeviceRead);
   }
 
   /// Puts the terminal into capture mode and **keeps the session open**.
@@ -306,7 +493,18 @@ class ZkEnrollmentDataSource {
     // The terminal's own count. An empty enrolment table is the ordinary state
     // of a new unit, and asking for it anyway turns that into a failed read.
     final sizes = await _optional(() => Util.readSizes(device));
-    final count = sizes?.users ?? -1;
+    return _readUsersOfCount(device, sizes?.users ?? -1);
+  }
+
+  /// The table itself, given the count the terminal already reported.
+  ///
+  /// Split out so a caller that wants the memory figures as well — the push
+  /// wants the free-slot count — does not have to ask for them in a second
+  /// session.
+  Future<List<ZkDeviceUserModel>?> _readUsersOfCount(
+    ZKTeco device,
+    int count,
+  ) async {
     if (count == 0) return const <ZkDeviceUserModel>[];
     if (count < 0) return null;
 
