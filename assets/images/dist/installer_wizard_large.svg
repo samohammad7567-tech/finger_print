@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 797" width="410" height="797">
+  <rect width="410" height="797" fill="#002623"/>
+  <g clip-path="url(#wz)"><g opacity="0.12"><circle cx="205" cy="200" r="30.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="52.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="74.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="96.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="118.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="140.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="162.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="184.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="206.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="228.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="250.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="272.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="294.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="316.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="338.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="360.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="382.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="404.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="426.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="448.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="470.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="492.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="514.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="536.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="558.0" fill="none" stroke="#428177" stroke-width="1.4"/><circle cx="205" cy="200" r="580.0" fill="none" stroke="#428177" stroke-width="1.4"/></g></g>
+  <defs><clipPath id="wz"><rect width="410" height="797"/></clipPath></defs>
+  <g transform="translate(205 210) scale(1.5) translate(-60 -70)">
+  <defs>
+    <clipPath id="sh"><path d="M14 21 L60 8 L106 21 L106 70 C106 100 86 120 60 132 C34 120 14 100 14 70 Z"/></clipPath>
+  </defs>
+  <path d="M14 21 L60 8 L106 21 L106 70 C106 100 86 120 60 132 C34 120 14 100 14 70 Z" fill="#EDEBE0"/>
+  <g clip-path="url(#sh)" fill="none" stroke-linecap="round">
+    <!-- fingerprint whorl: staggered ridges around an accented core -->
+    <path d="M50 63 C50 47.8 70 47.8 70 63" stroke="#002623" stroke-width="5.0"/><path d="M42 69 C42 39.64 78 39.64 78 69" stroke="#002623" stroke-width="5.0"/><path d="M34 75 C34 31.48 86 31.48 86 75" stroke="#002623" stroke-width="5.0"/><path d="M26 81 C26 23.32 94 23.32 94 81" stroke="#002623" stroke-width="5.0"/>
+    <path d="M55.5 59 C55.5 53.41 64.5 53.41 64.5 59" stroke="#B9A779" stroke-width="5.0"/>
+    <!-- ledger rules -->
+    <path d="M10 90 H110" stroke="#002623" stroke-width="5.0"/>
+    <path d="M10 103 H110" stroke="#002623" stroke-width="5.0"/>
+    <path d="M10 116 H110" stroke="#002623" stroke-width="5.0"/>
+  </g>
+  </g>
+  <rect x="145" y="330" width="120" height="2.5" fill="#B9A779"/>
+</svg>

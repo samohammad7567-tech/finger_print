@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <polygon points="30,72 98,62 98,142 30,152" fill="#FAF9F4"
+           stroke="#241E1F" stroke-width="3.2" stroke-linejoin="round"/>
+  <polygon points="102,62 170,72 170,152 102,142" fill="#FAF9F4"
+           stroke="#241E1F" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M100 62 V142" stroke="#241E1F" stroke-width="3.2"/>
+  <path d="M26 148 L100 138 L174 148 L174 158 L100 148 L26 158 Z"
+        fill="#054239"/>
+  <path d="M40 84 L92 80" stroke="#3D3A3B" stroke-width="1.4"/><path d="M40 97 L92 93" stroke="#3D3A3B" stroke-width="1.4"/><path d="M40 110 L92 106" stroke="#3D3A3B" stroke-width="1.4"/><path d="M40 123 L92 119" stroke="#3D3A3B" stroke-width="1.4"/><path d="M40 136 L92 132" stroke="#3D3A3B" stroke-width="1.4"/>
+  <rect x="112" y="80" width="48" height="44" rx="3" fill="#FAF9F4"
+        stroke="#241E1F" stroke-width="3.2"/>
+  <rect x="118" y="88" width="17" height="20" fill="none"
+        stroke="#3D3A3B" stroke-width="1.4"/>
+  <path d="M141 90 H155 M141 98 H155 M118 114 H155" stroke="#3D3A3B"
+        stroke-width="1.4"/>
+  <rect x="120" y="73" width="8" height="21" rx="4" fill="none"
+        stroke="#988561" stroke-width="2.6"/>
+</svg>

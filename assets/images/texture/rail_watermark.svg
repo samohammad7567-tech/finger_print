@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <g opacity="0.06" transform="translate(150 120) scale(2.4) translate(-60 -70)">
+    <path d="M14 21 L60 8 L106 21 L106 70 C106 100 86 120 60 132 C34 120 14 100 14 70 Z" fill="none" stroke="#EDEBE0" stroke-width="3"/>
+    <path d="M10 90 H110 M10 103 H110 M10 116 H110" stroke="#EDEBE0"
+          stroke-width="3" clip-path="url(#s2)"/>
+  </g>
+  <defs><clipPath id="s2"><path d="M14 21 L60 8 L106 21 L106 70 C106 100 86 120 60 132 C34 120 14 100 14 70 Z"/></clipPath></defs></svg>
