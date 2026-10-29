@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../attendance/data/models/employee_import_models.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// What the import made of the file.
 ///
@@ -28,7 +30,7 @@ class _EmployeeImportResultDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(
         LangKeys.importResultTitle.tr(),
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        style: AppTextStyles.subheading.copyWith(fontWeight: FontWeight.bold),
       ),
       content: SizedBox(
         width: 420,
@@ -52,7 +54,7 @@ class _EmployeeImportResultDialog extends StatelessWidget {
                   args: ['${result.skippedCount}'],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDimens.spaceMd),
               Flexible(child: _skippedList(context)),
             ],
           ],
@@ -73,23 +75,21 @@ class _EmployeeImportResultDialog extends StatelessWidget {
     required String text,
   }) => Row(
     children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 8),
-      Flexible(child: Text(text, style: const TextStyle(fontSize: 13))),
+      Icon(icon, size: AppDimens.iconLg, color: color),
+      const SizedBox(width: AppDimens.spaceSm),
+      Flexible(child: Text(text, style: AppTextStyles.body)),
     ],
   );
 
   Widget _skippedList(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.6);
+    final muted = context.color.mutedForeground;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 260),
       child: ListView.separated(
         shrinkWrap: true,
         itemCount: result.skipped.length,
-        separatorBuilder: (_, _) => const Divider(height: 12),
+        separatorBuilder: (_, _) => const Divider(height: AppDimens.spaceMd),
         itemBuilder: (_, i) {
           final issue = result.skipped[i];
           final name = issue.name.trim();
@@ -100,7 +100,7 @@ class _EmployeeImportResultDialog extends StatelessWidget {
                 width: 64,
                 child: Text(
                   LangKeys.importSkippedRow.tr(args: ['${issue.line}']),
-                  style: TextStyle(fontSize: 11, color: muted),
+                  style: AppTextStyles.meta.copyWith(color: muted),
                 ),
               ),
               Expanded(
@@ -112,14 +112,13 @@ class _EmployeeImportResultDialog extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.captionMedium.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     Text(
                       issue.reasonKey.tr(),
-                      style: TextStyle(fontSize: 11, color: muted),
+                      style: AppTextStyles.meta.copyWith(color: muted),
                     ),
                   ],
                 ),

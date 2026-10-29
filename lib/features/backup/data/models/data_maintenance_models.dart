@@ -28,12 +28,12 @@ class DataFootprint {
     this.oldestAttendanceDate,
   });
 
-  bool get isEmpty =>
-      employees == 0 && attendanceDays == 0 && punches == 0;
+  bool get isEmpty => employees == 0 && attendanceDays == 0 && punches == 0;
 
   /// Megabytes, one decimal — the only unit worth showing for a file this
   /// size, and the one an admin can compare against their disk.
-  String get databaseSizeMb => (databaseBytes / (1024 * 1024)).toStringAsFixed(1);
+  String get databaseSizeMb =>
+      (databaseBytes / (1024 * 1024)).toStringAsFixed(1);
 }
 
 /// What a clear-before-date actually removed.

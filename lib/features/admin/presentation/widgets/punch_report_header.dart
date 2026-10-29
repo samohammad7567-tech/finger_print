@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../data/data_source/monthly_punches_excel_data_source.dart';
 import '../../data/data_source/punch_report_pdf_data_source.dart';
@@ -20,18 +23,23 @@ class PunchReportHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.pagePadding,
+        AppDimens.pagePaddingTop,
+        AppDimens.pagePadding,
+        AppDimens.spaceSm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _title(context),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppDimens.spaceXs),
           // A Wrap rather than a Row: four actions do not fit beside a title on
           // a narrow window, and an overflowing Row loses the last of them
           // rather than moving it down a line.
           Wrap(
-            spacing: 4,
-            runSpacing: 4,
+            spacing: AppDimens.spaceXs,
+            runSpacing: AppDimens.spaceXs,
             children: [
               _refreshButton(context),
               _pdfButton(context),
@@ -40,10 +48,10 @@ class PunchReportHeader extends StatelessWidget {
                 onPressed: state.visibleRows.isEmpty
                     ? null
                     : () => _copyCsv(context),
-                icon: const Icon(Icons.copy_all, size: 16),
+                icon: const Icon(Icons.copy_all, size: AppDimens.iconMd),
                 label: Text(
                   LangKeys.reportCopyCsv.tr(),
-                  style: const TextStyle(fontSize: 12),
+                  style: AppTextStyles.controlSemiBold,
                 ),
               ),
             ],
@@ -64,7 +72,9 @@ class PunchReportHeader extends StatelessWidget {
           LangKeys.reportPunchTitle.tr(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: AppTextStyles.heading.copyWith(
+            color: context.color.foreground,
+          ),
         ),
         // The hours the figures below were measured against — without them a
         // worked total is a number with no rule behind it. Once shifts exist
@@ -78,11 +88,10 @@ class PunchReportHeader extends StatelessWidget {
           '${schedule.overtimeStart} – ${schedule.overtimeEnd}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 11,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.55),
+          // Mono: it is a row of clock times, and the eye should be able to
+          // run down them against the table below.
+          style: AppTextStyles.monoMeta.copyWith(
+            color: context.color.mutedForeground,
           ),
         ),
       ],
@@ -98,11 +107,11 @@ class PunchReportHeader extends StatelessWidget {
           : () => context.read<PunchReportCubit>().refreshFromDevice(),
       icon: state.isSyncing
           ? const _Spinner()
-          : const Icon(Icons.sync, size: 16),
+          : const Icon(Icons.sync, size: AppDimens.iconMd),
       label: Text(
         (state.isSyncing ? LangKeys.reportRefreshing : LangKeys.reportRefresh)
             .tr(),
-        style: const TextStyle(fontSize: 12),
+        style: AppTextStyles.controlSemiBold,
       ),
     );
   }
@@ -123,10 +132,10 @@ class PunchReportHeader extends StatelessWidget {
             ),
       icon: busy
           ? const _Spinner()
-          : const Icon(Icons.picture_as_pdf_outlined, size: 16),
+          : const Icon(Icons.picture_as_pdf_outlined, size: AppDimens.iconMd),
       label: Text(
         (busy ? LangKeys.reportPdfBuilding : LangKeys.reportPdf).tr(),
-        style: const TextStyle(fontSize: 12),
+        style: AppTextStyles.controlSemiBold,
       ),
     );
   }
@@ -151,10 +160,10 @@ class PunchReportHeader extends StatelessWidget {
             ),
       icon: busy
           ? const _Spinner()
-          : const Icon(Icons.table_view_outlined, size: 16),
+          : const Icon(Icons.table_view_outlined, size: AppDimens.iconMd),
       label: Text(
         (busy ? LangKeys.reportMonthlyBuilding : LangKeys.reportMonthly).tr(),
-        style: const TextStyle(fontSize: 12),
+        style: AppTextStyles.controlSemiBold,
       ),
     );
   }
@@ -236,8 +245,8 @@ class _Spinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SizedBox(
-    width: 14,
-    height: 14,
+    width: AppDimens.iconSm,
+    height: AppDimens.iconSm,
     child: CircularProgressIndicator(strokeWidth: 2),
   );
 }

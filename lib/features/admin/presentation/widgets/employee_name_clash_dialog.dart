@@ -7,6 +7,10 @@ import '../../../attendance/data/models/employee_import_models.dart';
 import '../../../attendance/data/models/employee_model.dart';
 import '../cubit/employee_management_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Shows every name that now appears twice in the staff list, and lets the
 /// admin write one that tells the two apart.
@@ -36,42 +40,31 @@ class _NameClashDialog extends StatelessWidget {
       builder: (context, state) {
         final clashes = state.nameClashes;
 
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.people_alt_outlined,
-                size: 20,
-                color: context.color.warningSoft,
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: Text(LangKeys.clashTitle.tr())),
-            ],
-          ),
-          content: SizedBox(
-            width: 460,
-            child: clashes.isEmpty
-                ? _resolved(context)
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          LangKeys.clashHint.tr(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
+        return AppWideDialog(
+          title: LangKeys.clashTitle.tr(),
+          icon: Icons.people_alt_outlined,
+          iconColor: context.color.warningSoft,
+          // The resolved state is a single centred line; only the list of
+          // clashes needs to scroll.
+          scrollable: false,
+          content: clashes.isEmpty
+              ? _resolved(context)
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        LangKeys.clashHint.tr(),
+                        style: AppTextStyles.caption.copyWith(
+                          color: context.color.mutedForeground,
                         ),
-                        const SizedBox(height: 14),
-                        ...clashes.map((c) => _ClashGroup(clash: c)),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...clashes.map((c) => _ClashGroup(clash: c)),
+                    ],
                   ),
-          ),
+                ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -89,10 +82,10 @@ class _NameClashDialog extends StatelessWidget {
       children: [
         Icon(
           Icons.check_circle_outline,
-          size: 20,
+          size: AppDimens.iconXl,
           color: context.color.success,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppDimens.spaceSm),
         Expanded(child: Text(LangKeys.clashAllResolved.tr())),
       ],
     ),
@@ -107,11 +100,11 @@ class _ClashGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: AppDimens.spaceMd),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
+        color: context.color.muted,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         border: Border.all(
           color: context.color.warningSoft.withValues(alpha: 0.3),
         ),
@@ -126,7 +119,7 @@ class _ClashGroup extends StatelessWidget {
                 clash.employees.first.fullName,
               ],
             ),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: AppTextStyles.bodySemiBold,
           ),
           const SizedBox(height: 2),
           Text(
@@ -136,16 +129,13 @@ class _ClashGroup extends StatelessWidget {
                     ? LangKeys.clashCertainlyDistinct
                     : LangKeys.clashMayBeSame)
                 .tr(),
-            style: TextStyle(
-              fontSize: 11,
+            style: AppTextStyles.meta.copyWith(
               color: clash.isDefinitelyDistinct
                   ? context.color.warningSoft
-                  : Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  : context.color.mutedForeground,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimens.spaceSm),
           ...clash.employees.map((e) => _ClashRow(employee: e)),
         ],
       ),
@@ -191,41 +181,32 @@ class _ClashRowState extends State<_ClashRow> {
   Widget build(BuildContext context) {
     final employee = widget.employee;
     final enrolled = (employee.deviceUserId ?? '').isNotEmpty;
-    final faded = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.6);
+    final faded = context.color.mutedForeground;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
+          AppTintedPill(
+            label: employee.employeeId ?? '—',
+            color: context.color.primary,
+            fontWeight: FontWeight.w700,
+            radius: 6,
+            tintAlpha: 0.12,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(
-              color: context.color.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              employee.employeeId ?? '—',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: context.color.primary,
-              ),
-            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimens.spaceSm),
           Expanded(
             child: _editing
                 ? TextField(
                     controller: _controller,
                     autofocus: true,
-                    style: const TextStyle(fontSize: 13),
+                    style: AppTextStyles.body,
                     decoration: const InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: AppDimens.spaceSm,
                         vertical: 6,
                       ),
                       border: OutlineInputBorder(),
@@ -239,8 +220,7 @@ class _ClashRowState extends State<_ClashRow> {
                         employee.fullName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: AppTextStyles.body.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -257,8 +237,7 @@ class _ClashRowState extends State<_ClashRow> {
                         ].join(' · '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: AppTextStyles.micro.copyWith(
                           color: enrolled ? context.color.primary : faded,
                         ),
                       ),
@@ -269,20 +248,14 @@ class _ClashRowState extends State<_ClashRow> {
           if (_editing)
             TextButton(
               onPressed: _save,
-              child: Text(
-                LangKeys.save.tr(),
-                style: const TextStyle(fontSize: 11),
-              ),
+              child: Text(LangKeys.save.tr(), style: AppTextStyles.meta),
             )
           else
             TextButton.icon(
               onPressed: () => setState(() => _editing = true),
-              icon: const Icon(Icons.edit, size: 14),
+              icon: const Icon(Icons.edit, size: AppDimens.iconSm),
               style: TextButton.styleFrom(foregroundColor: faded),
-              label: Text(
-                LangKeys.clashRename.tr(),
-                style: const TextStyle(fontSize: 11),
-              ),
+              label: Text(LangKeys.clashRename.tr(), style: AppTextStyles.meta),
             ),
         ],
       ),

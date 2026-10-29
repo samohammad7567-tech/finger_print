@@ -31,7 +31,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       final showLateAlerts = _settingsRepo.getLateAlerts();
       final showMissingCheckout = _settingsRepo.getMissingCheckoutAlerts();
 
-      if (showLateAlerts)
+      if (showLateAlerts) {
         for (final r in records.where((r) => r.status == 'late')) {
           notifs.add(
             NotificationItem(
@@ -44,6 +44,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             ),
           );
         }
+      }
 
       if (showMissingCheckout && nowMins >= 17 * 60) {
         for (final r in records.where(

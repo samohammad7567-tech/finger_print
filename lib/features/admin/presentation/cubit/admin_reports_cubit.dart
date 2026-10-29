@@ -16,7 +16,15 @@ class DayStats {
     this.late = 0,
     this.absent = 0,
   });
+
+  /// The three counts are disjoint, so they sum. [present] used to include
+  /// the late arrivals as well, which made every late person count twice here
+  /// — a day with one late employee reported a total of two.
   int get total => present + late + absent;
+
+  /// Everybody who turned up, late or not. What an attendance rate is built
+  /// from, as opposed to [total], which also counts the absences.
+  int get attended => present + late;
 }
 
 class DeptStat {
@@ -59,7 +67,7 @@ class AdminReportsCubit extends Cubit<AdminReportsState> {
 
   Future<void> load() async {
     try {
-      emit(state.copyWith(isLoading: true));
+      emit(state.copyWith(isLoading: true, clearError: true));
 
       final startDate = DateFormat(
         'yyyy-MM-dd',
@@ -87,9 +95,7 @@ class AdminReportsCubit extends Cubit<AdminReportsState> {
         final dayRecs = records.where((r) => r.date == date);
         return DayStats(
           date: date.substring(5),
-          present: dayRecs
-              .where((r) => r.status == 'present' || r.status == 'late')
-              .length,
+          present: dayRecs.where((r) => r.status == 'present').length,
           late: dayRecs.where((r) => r.status == 'late').length,
           absent: dayRecs.where((r) => r.status == 'absent').length,
         );

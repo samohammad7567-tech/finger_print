@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/admin_permissions_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 class PermissionFilterTabs extends StatelessWidget {
   const PermissionFilterTabs({super.key});
@@ -30,24 +32,22 @@ class PermissionFilterTabs extends StatelessWidget {
                 onTap: () => context.read<AdminPermissionsCubit>().setFilter(f),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 2),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppDimens.spaceSm,
+                  ),
                   decoration: BoxDecoration(
                     color: active == f
                         ? context.color.primary
                         : context.color.muted,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                   ),
                   child: Text(
                     labels[f] ?? f,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    style: AppTextStyles.label.copyWith(
                       color: active == f
                           ? context.color.primaryForeground
-                          : Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          : context.color.mutedForeground,
                     ),
                   ),
                 ),

@@ -71,8 +71,7 @@ class DeviceState {
     this.message,
   });
 
-  bool get isBusy =>
-      isTesting || isSyncing || isLoadingUsers || isResetting;
+  bool get isBusy => isTesting || isSyncing || isLoadingUsers || isResetting;
 
   /// A reset holds the terminal's only session, so nothing else may start.
   bool get isResetting => resettingAction != null;

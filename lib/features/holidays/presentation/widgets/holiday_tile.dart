@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../data/models/holiday_model.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// One holiday in the list: what it is called, the dates it covers, how many
 /// days that comes to, and whether it is paid.
@@ -67,23 +68,10 @@ class HolidayTile extends StatelessWidget {
                 ),
                 if (holiday.isPaid) ...[
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.color.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      LangKeys.holidayPaid.tr(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: context.color.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  AppTintedPill(
+                    label: LangKeys.holidayPaid.tr(),
+                    color: context.color.primary,
+                    tintAlpha: 0.12,
                   ),
                 ],
               ],

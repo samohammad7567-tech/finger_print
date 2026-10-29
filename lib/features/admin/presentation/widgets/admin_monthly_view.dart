@@ -1,6 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../cubit/admin_attendance_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
@@ -18,9 +20,14 @@ class AdminMonthlyView extends StatelessWidget {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.pagePadding,
+        AppDimens.spaceSm,
+        AppDimens.pagePadding,
+        AppDimens.pagePaddingBottom,
+      ),
       itemCount: summaries.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: AppDimens.spaceSm),
       itemBuilder: (context, index) =>
           _MonthlySummaryCard(summary: summaries[index]),
     );
@@ -47,40 +54,34 @@ class _MonthlySummaryCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: context.color.primary,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppDimens.radius),
                 ),
                 child: Center(
                   child: Text(
                     s.employee.fullName.isNotEmpty
                         ? s.employee.fullName[0].toUpperCase()
                         : '?',
-                    style: TextStyle(
+                    style: AppTextStyles.controlSemiBold.copyWith(
                       color: context.color.primaryForeground,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppDimens.spaceMd),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       s.employee.fullName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                      style: AppTextStyles.bodySemiBold.copyWith(
+                        color: context.color.foreground,
                       ),
                     ),
                     Text(
                       s.employee.department,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      style: AppTextStyles.caption.copyWith(
+                        color: context.color.mutedForeground,
                       ),
                     ),
                   ],
@@ -88,7 +89,7 @@ class _MonthlySummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.spaceMd),
           Row(
             children: [
               _StatBadge(
@@ -169,25 +170,27 @@ class _StatBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.spaceSm),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimens.radius),
         ),
         child: Column(
           children: [
             Text(
               value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+              // Mono: these are the month's figures, read down a column of
+              // employees, so they have to align on their digits.
+              style: AppTextStyles.mono.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
                 color: color,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(fontSize: 9, color: color),
+              style: AppTextStyles.monoMicro.copyWith(color: color),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

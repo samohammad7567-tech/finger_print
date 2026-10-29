@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/punch_report_cubit.dart';
 import 'punch_issues_toggle.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Date filters and the employee filter for the punch report.
 ///
@@ -20,10 +23,10 @@ class PunchReportFilters extends StatelessWidget {
     final format = DateFormat('yyyy-MM-dd');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.spaceLg),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: AppDimens.spaceSm,
+        runSpacing: AppDimens.spaceSm,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _tab(
@@ -72,19 +75,25 @@ class PunchReportFilters extends StatelessWidget {
         ? FilledButton(
             onPressed: onTap,
             style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.spaceMd,
+                vertical: AppDimens.spaceSm,
+              ),
               minimumSize: Size.zero,
             ),
-            child: Text(label, style: const TextStyle(fontSize: 11)),
+            child: Text(label, style: AppTextStyles.meta),
           )
         : OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.spaceMd,
+                vertical: AppDimens.spaceSm,
+              ),
               minimumSize: Size.zero,
               foregroundColor: scheme.onSurface.withValues(alpha: 0.75),
             ),
-            child: Text(label, style: const TextStyle(fontSize: 11)),
+            child: Text(label, style: AppTextStyles.meta),
           );
   }
 
@@ -148,16 +157,13 @@ class PunchReportFilters extends StatelessWidget {
     return DropdownButton<String>(
       value: state.employeeFilter,
       underline: const SizedBox.shrink(),
-      style: TextStyle(
-        fontSize: 11,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
+      style: AppTextStyles.meta.copyWith(color: context.color.foreground),
       items: [
         DropdownMenuItem(
           value: '',
           child: Text(
             LangKeys.reportAllEmployees.tr(),
-            style: const TextStyle(fontSize: 11),
+            style: AppTextStyles.meta,
           ),
         ),
         ...state.employees.map(
@@ -166,7 +172,7 @@ class PunchReportFilters extends StatelessWidget {
             child: Text(
               e.fullName,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11),
+              style: AppTextStyles.meta,
             ),
           ),
         ),

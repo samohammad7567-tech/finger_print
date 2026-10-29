@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/backup_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
 
 /// Confirms replacing the live database with a chosen backup.
 ///
@@ -19,44 +20,28 @@ class BackupRestoreConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
+    return AppWideDialog(
+      title: LangKeys.backupRestoreConfirmTitle.tr(),
+      icon: Icons.settings_backup_restore,
+      iconColor: context.color.warning,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.settings_backup_restore,
-            size: 20,
-            color: context.color.warning,
+          SelectableText(path, style: const TextStyle(fontSize: 11)),
+          const SizedBox(height: 12),
+          Text(
+            LangKeys.backupRestoreConfirmMsg.tr(),
+            style: const TextStyle(fontSize: 12),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(LangKeys.backupRestoreConfirmTitle.tr())),
+          const SizedBox(height: 10),
+          // The reason this is recoverable, said where the decision is being
+          // made rather than only on the card behind it.
+          Text(
+            LangKeys.backupRestoreRollback.tr(),
+            style: TextStyle(fontSize: 11, color: context.color.success),
+          ),
         ],
-      ),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SelectableText(
-                path,
-                style: const TextStyle(fontSize: 11),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                LangKeys.backupRestoreConfirmMsg.tr(),
-                style: const TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 10),
-              // The reason this is recoverable, said where the decision is
-              // being made rather than only on the card behind it.
-              Text(
-                LangKeys.backupRestoreRollback.tr(),
-                style: TextStyle(fontSize: 11, color: context.color.success),
-              ),
-            ],
-          ),
-        ),
       ),
       actions: [
         TextButton(
@@ -79,10 +64,7 @@ class BackupRestoreConfirmDialog extends StatelessWidget {
   }
 }
 
-Future<void> showBackupRestoreConfirmDialog(
-  BuildContext context,
-  String path,
-) {
+Future<void> showBackupRestoreConfirmDialog(BuildContext context, String path) {
   final cubit = context.read<BackupCubit>();
   return showDialog<void>(
     context: context,

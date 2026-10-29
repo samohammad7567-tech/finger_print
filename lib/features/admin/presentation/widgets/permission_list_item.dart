@@ -6,6 +6,8 @@ import '../../../../core/widgets/glass_card.dart';
 import '../../../permissions/data/models/permission_request_model.dart';
 import '../cubit/admin_permissions_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 class PermissionListItem extends StatelessWidget {
   const PermissionListItem({super.key, required this.permission});
@@ -29,15 +31,11 @@ class PermissionListItem extends StatelessWidget {
                   children: [
                     Text(
                       p.employeeName ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyles.controlSemiBold,
                     ),
                     Text(
                       p.permissionType.tr(),
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: AppTextStyles.caption.copyWith(
                         color: context.color.primary,
                       ),
                     ),
@@ -49,11 +47,8 @@ class PermissionListItem extends StatelessWidget {
                 children: [
                   Text(
                     p.date,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    style: AppTextStyles.caption.copyWith(
+                      color: context.color.mutedForeground,
                     ),
                   ),
                   _StatusLabel(status: p.status),
@@ -62,29 +57,24 @@ class PermissionListItem extends StatelessWidget {
             ],
           ),
           if (p.reason != null && p.reason!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.spaceSm),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppDimens.spaceSm),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(8),
+                color: context.color.muted,
+                borderRadius: BorderRadius.circular(AppDimens.radius),
               ),
               child: Text(
                 p.reason!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                style: AppTextStyles.caption.copyWith(
+                  color: context.color.mutedForeground,
                 ),
               ),
             ),
           ],
           if (p.status == 'pending') ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             Row(
               children: [
                 Expanded(
@@ -97,7 +87,7 @@ class PermissionListItem extends StatelessWidget {
                         .updateStatus(p.id, 'approved'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppDimens.spaceSm),
                 Expanded(
                   child: _ActionButton(
                     label: LangKeys.adminReject.tr(),
@@ -129,10 +119,7 @@ class _StatusLabel extends StatelessWidget {
       'rejected' => context.color.destructive,
       _ => context.color.warning,
     };
-    return Text(
-      status.tr(),
-      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-    );
+    return Text(status.tr(), style: AppTextStyles.label.copyWith(color: color));
   }
 }
 
@@ -154,21 +141,23 @@ class _ActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.spaceSm),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: context.color.primaryForeground),
-            const SizedBox(width: 4),
+            Icon(
+              icon,
+              size: AppDimens.iconSm,
+              color: context.color.primaryForeground,
+            ),
+            const SizedBox(width: AppDimens.spaceXs),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+              style: AppTextStyles.label.copyWith(
                 color: context.color.primaryForeground,
               ),
             ),

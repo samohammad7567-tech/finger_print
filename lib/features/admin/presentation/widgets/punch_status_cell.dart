@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/attendance_utils.dart';
 import '../cubit/punch_report_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Everything unusual about the day, one chip each.
 ///
@@ -34,8 +36,8 @@ class PunchStatusCell extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Wrap(
-          spacing: 4,
-          runSpacing: 4,
+          spacing: AppDimens.spaceXs,
+          runSpacing: AppDimens.spaceXs,
           children: [
             for (final flag in flags)
               Builder(
@@ -50,15 +52,6 @@ class PunchStatusCell extends StatelessWidget {
     );
   }
 
-  static Widget chip(String label, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
-    ),
-  );
+  static Widget chip(String label, Color color) =>
+      AppTintedPill(label: label, color: color);
 }

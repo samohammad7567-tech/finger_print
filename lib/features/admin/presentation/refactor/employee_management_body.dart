@@ -2,21 +2,29 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_card_skeleton.dart';
+import '../../../../core/widgets/app_compact_button.dart';
+import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/widgets/app_loading_overlay.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/glass_card.dart';
-import '../../../attendance/data/models/employee_model.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../cubit/employee_management_cubit.dart';
-import '../widgets/employee_form_sheet.dart';
-import '../widgets/delete_confirm_dialog.dart';
-import '../widgets/employee_import_button.dart';
-import '../widgets/employee_import_result_dialog.dart';
-import '../widgets/employee_match_banner.dart';
+import '../widgets/employee_clash_banner.dart';
 import '../widgets/employee_device_fetch_button.dart';
 import '../widgets/employee_device_push_button.dart';
 import '../widgets/employee_device_push_dialog.dart';
+import '../widgets/employee_form_sheet.dart';
+import '../widgets/employee_import_button.dart';
+import '../widgets/employee_import_result_dialog.dart';
+import '../widgets/employee_list_empty.dart';
+import '../widgets/employee_list_row.dart';
+import '../widgets/employee_match_banner.dart';
 import '../widgets/employee_name_clash_dialog.dart';
 import '../widgets/employee_restore_dialog.dart';
-import '../../../../core/style/theme/context_extension.dart';
+import 'employee_feedback_text.dart';
 
 class EmployeeManagementBody extends StatefulWidget {
   const EmployeeManagementBody({super.key});
@@ -29,150 +37,47 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<EmployeeManagementCubit, EmployeeManagementState>(
-      listener: (context, state) {
-        if (state.errorKey != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorKey!.tr()),
-              backgroundColor: context.color.destructive,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-
-        if (state.successKey != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_successText(state)),
-              backgroundColor: context.color.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
-
-        // The report opens over the list the import has already refreshed, so
-        // the admin reads "four skipped" with the new names behind it.
-        final importResult = state.importResult;
-        if (importResult != null) {
-          showEmployeeImportResultDialog(context, importResult);
-        }
-
-        // A fetch the terminal answered and nothing came of. Shown before the
-        // clash dialog because it is the more likely reason nothing appeared.
-        final fetch = state.deviceFetchResult;
-        if (state.deletedNeedReview && fetch != null && fetch.hasDeleted) {
-          context.read<EmployeeManagementCubit>().deletedReviewed();
-          showEmployeeRestoreDialog(context, fetch);
-        }
-
-        // A push that has been planned but not written. The plan arrives once,
-        // on the transition, and the dialog is where it is approved — nothing
-        // reaches the terminal until the admin presses send.
-        final plan = state.pushPlan;
-        if (plan != null) {
-          showEmployeeDevicePushDialog(context, plan);
-        }
-
-        // A fetch that turned up names appearing twice. Opened from the
-        // listener rather than the builder so it fires once, on the transition,
-        // instead of every time the list rebuilds behind it.
-        if (state.clashesNeedReview && state.hasNameClashes) {
-          context.read<EmployeeManagementCubit>().clashesReviewed();
-          showEmployeeNameClashDialog(context);
-        }
-
-        // Clear feedback after showing
-        if (state.errorKey != null ||
-            state.successKey != null ||
-            importResult != null) {
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              context.read<EmployeeManagementCubit>().clearFeedback();
-            }
-          });
-        }
-      },
+      listener: _onState,
       child: BlocBuilder<EmployeeManagementCubit, EmployeeManagementState>(
         builder: (context, state) {
-          final filtered = state.filtered;
           return Stack(
-            children: [
+            children: <Widget>[
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.pagePadding,
+                  AppDimens.pagePaddingTop,
+                  AppDimens.pagePadding,
+                  AppDimens.pagePaddingBottom,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _header(context, state),
-                    const SizedBox(height: 12),
-                    // A Wrap with the full width to itself, rather than four
-                    // buttons squeezed in beside the heading: on a narrow
-                    // window they now run to a second line instead of
-                    // overflowing the row.
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        EmployeeDeviceFetchButton(state: state),
-                        EmployeeDevicePushButton(state: state),
-                        EmployeeImportButton(state: state),
-                        _addButton(context, state),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                  children: <Widget>[
+                    _Header(state: state),
+                    const SizedBox(height: AppDimens.spaceMd),
+                    _Toolbar(state: state),
+                    const SizedBox(height: AppDimens.spaceMd),
                     // Above the search box: it explains a name the admin is
                     // about to go looking for and will not find.
                     EmployeeMatchBanner(count: state.pendingMatchCount),
-                    // Stays up until somebody renames one of them: a duplicated
-                    // name is not urgent, but it silently makes the list
-                    // ambiguous and there is otherwise nothing to say so.
-                    if (state.hasNameClashes)
-                      _clashBanner(context, state.nameClashes.length),
+                    EmployeeClashBanner(count: state.nameClashes.length),
                     AppTextField(
                       hint: LangKeys.adminSearchEmployee.tr(),
                       prefixIcon: Icons.search,
                       onChanged: (v) =>
                           context.read<EmployeeManagementCubit>().setSearch(v),
                     ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: _buildListContent(context, state, filtered),
-                    ),
+                    const SizedBox(height: AppDimens.spaceMd),
+                    Expanded(child: _list(context, state)),
                   ],
                 ),
               ),
-
-              // Loading overlay
-              if (state.isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: context.effects.scrim,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-
-              // Deleting overlay
-              if (state.isDeleting)
-                Positioned.fill(
-                  child: Container(
-                    color: context.effects.scrim,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text(
-                            'Deleting...',
-                            style: TextStyle(
-                              color: context.color.primaryForeground,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              AppLoadingOverlay.maybe(state.isLoading),
+              // Named, because a delete that clears a fingerprint off the
+              // terminal can take several seconds on a slow link.
+              AppLoadingOverlay.maybe(
+                state.isDeleting,
+                message: LangKeys.deleteInProgress.tr(),
+              ),
             ],
           );
         },
@@ -180,367 +85,144 @@ class _EmployeeManagementBodyState extends State<EmployeeManagementBody> {
     );
   }
 
-  /// The title and the headcount under it.
-  Widget _header(BuildContext context, EmployeeManagementState state) {
-    final faded = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.5);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          LangKeys.adminEmployeeMgmt.tr(),
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          state.hasEmployees
-              ? '${state.employees.length} ${LangKeys.employees.tr()}'
-              : LangKeys.noEmployees.tr(),
-          style: TextStyle(fontSize: 12, color: faded),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildListContent(
-    BuildContext context,
-    EmployeeManagementState state,
-    List<EmployeeModel> filtered,
-  ) {
-    if (state.isLoading) {
-      return _shimmer(context);
+  /// Toasts, and the four dialogs that must fire on the transition rather than
+  /// on every rebuild behind them.
+  void _onState(BuildContext context, EmployeeManagementState state) {
+    if (state.errorKey != null) {
+      AppToast.error(context, state.errorKey!.tr());
+    }
+    if (state.successKey != null) {
+      AppToast.success(context, employeeSuccessText(state));
     }
 
-    if (!state.hasEmployees) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.people_outline,
-              size: 64,
-              color: context.color.primary.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              LangKeys.noEmployees.tr(),
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => showEmployeeFormSheet(context),
-              icon: const Icon(Icons.add),
-              label: Text(LangKeys.addFirstEmployee.tr()),
-            ),
-            const SizedBox(height: 8),
-            // A first employee is rarely the real job — the admin usually has
-            // the whole staff list in a file already.
-            TextButton.icon(
-              onPressed: state.isImporting
-                  ? null
-                  : () =>
-                        context.read<EmployeeManagementCubit>().importFromExcel(
-                          typeLabel: LangKeys.importFileType.tr(),
-                          confirmLabel: LangKeys.importEmployees.tr(),
-                        ),
-              icon: const Icon(Icons.upload_file_outlined, size: 18),
-              label: Text(LangKeys.importEmployees.tr()),
-            ),
-          ],
-        ),
+    // The report opens over the list the import has already refreshed, so the
+    // admin reads "four skipped" with the new names behind it.
+    final importResult = state.importResult;
+    if (importResult != null) {
+      showEmployeeImportResultDialog(context, importResult);
+    }
+
+    // A fetch the terminal answered and nothing came of. Shown before the
+    // clash dialog because it is the more likely reason nothing appeared.
+    final fetch = state.deviceFetchResult;
+    if (state.deletedNeedReview && fetch != null && fetch.hasDeleted) {
+      context.read<EmployeeManagementCubit>().deletedReviewed();
+      showEmployeeRestoreDialog(context, fetch);
+    }
+
+    // A push that has been planned but not written. Nothing reaches the
+    // terminal until the admin presses send in this dialog.
+    final plan = state.pushPlan;
+    if (plan != null) showEmployeeDevicePushDialog(context, plan);
+
+    if (state.clashesNeedReview && state.hasNameClashes) {
+      context.read<EmployeeManagementCubit>().clashesReviewed();
+      showEmployeeNameClashDialog(context);
+    }
+
+    if (state.errorKey != null ||
+        state.successKey != null ||
+        importResult != null) {
+      // The cubit is captured before the delay rather than read after it: the
+      // old version reached for `context` on the far side of the gap, which is
+      // a use-after-dispose waiting for a screen that closes inside half a
+      // second.
+      final cubit = context.read<EmployeeManagementCubit>();
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) cubit.clearFeedback();
+      });
+    }
+  }
+
+  Widget _list(BuildContext context, EmployeeManagementState state) {
+    if (state.isLoading) {
+      return ListView.separated(
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: AppDimens.spaceSm),
+        itemBuilder: (_, _) =>
+            const AppCardSkeleton(lines: 2, height: 52, showHeader: false),
       );
     }
 
-    if (filtered.isEmpty && state.search.isNotEmpty) {
-      return Center(
-        child: Text(
-          LangKeys.noResults.tr(),
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
+    if (!state.hasEmployees) {
+      return EmployeeListEmpty(isImporting: state.isImporting);
+    }
+
+    final filtered = state.filtered;
+    if (filtered.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.search_off,
+        title: LangKeys.noResults.tr(),
+        subtitle: state.search.isEmpty ? null : state.search,
       );
     }
 
     return ListView.separated(
       itemCount: filtered.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        final emp = filtered[i];
-        return Opacity(
-          opacity: emp.isActive ? 1.0 : 0.5,
-          child: GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: context.color.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      emp.fullName.isNotEmpty
-                          ? emp.fullName[0].toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        color: context.color.primaryForeground,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              emp.fullName,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (emp.hasHousing)
-                            Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.home,
-                                size: 12,
-                                color: context.color.success,
-                              ),
-                            ),
-                          if (emp.hasTravelPermission)
-                            Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.flight,
-                                size: 12,
-                                color: context.color.primary,
-                              ),
-                            ),
-                          if (emp.deviceUserId != null &&
-                              emp.deviceUserId!.isNotEmpty)
-                            Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.fingerprint,
-                                size: 12,
-                                color: context.color.primary,
-                              ),
-                            ),
-                        ],
-                      ),
-                      Text(
-                        // "No department" is an ordinary choice, so the
-                        // separator only appears when there is something on
-                        // both sides of it.
-                        [
-                          if (emp.department.trim().isNotEmpty) emp.department,
-                          if ((emp.employeeId ?? '').isNotEmpty)
-                            emp.employeeId!,
-                        ].join(' · '),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    emp.isActive ? Icons.person : Icons.person_off,
-                    size: 18,
-                    color: emp.isActive
-                        ? context.color.success
-                        : context.color.subtleForeground,
-                  ),
-                  onPressed: () =>
-                      context.read<EmployeeManagementCubit>().toggleActive(emp),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.edit,
-                    size: 18,
-                    color: context.color.primary,
-                  ),
-                  onPressed: () =>
-                      showEmployeeFormSheet(context, employee: emp),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete,
-                    size: 18,
-                    color: context.color.destructive,
-                  ),
-                  onPressed: () => showDeleteConfirmDialog(context, emp),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      separatorBuilder: (_, _) => const SizedBox(height: AppDimens.spaceSm),
+      itemBuilder: (_, i) => EmployeeListRow(employee: filtered[i]),
     );
   }
+}
 
-  /// A fetch says what it did rather than only that it finished: an admin who
-  /// presses the button and sees nothing new appear needs to be told whether
-  /// that is because the terminal held people back or because there was nothing
-  /// to add.
-  String _successText(EmployeeManagementState state) {
-    final base = state.successKey!.tr();
+/// The title and the headcount under it.
+class _Header extends StatelessWidget {
+  const _Header({required this.state});
 
-    // A push says how many the terminal took and how many it refused. A push
-    // that wrote sixty and had four refused is an ordinary outcome on a unit
-    // that is nearly full, and "done" alone would hide it.
-    final push = state.pushResult;
-    if (push != null) {
-      return [
-        base,
-        '${LangKeys.devicePushWritten.tr()}: ${push.written}',
-        if (push.hasFailures)
-          '${LangKeys.devicePushRefused.tr()}: ${push.failed}',
-        if (push.stopped) LangKeys.errorDevicePushStopped.tr(),
-        if (push.hasUnlinked)
-          '${LangKeys.deviceUnmapped.tr()}: ${push.unlinked}',
-      ].join(' · ');
-    }
+  final EmployeeManagementState state;
 
-    final result = state.deviceFetchResult;
-    if (result == null) return base;
-
-    final parts = [
-      '${LangKeys.deviceFetchRead.tr()}: ${result.readFromDevice}',
-      '${LangKeys.deviceFetchCreated.tr()}: ${result.created}',
-      if (result.pending > 0)
-        '${LangKeys.deviceFetchHeld.tr()}: ${result.pending}',
-      if (result.hasDeleted)
-        '${LangKeys.deviceFetchDeleted.tr()}: ${result.deleted.length}',
-    ];
-    return '$base · ${parts.join(' · ')}';
-  }
-
-  Widget _clashBanner(BuildContext context, int count) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => showEmployeeNameClashDialog(context),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: context.color.warning.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: context.color.warning.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.people_alt_outlined,
-                  size: 18,
-                  color: context.color.warning,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    LangKeys.clashBanner.tr(args: ['$count']),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: context.color.warning,
-                    ),
-                  ),
-                ),
-                Text(
-                  LangKeys.clashReview.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: context.color.warning,
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: context.color.warning,
-                ),
-              ],
-            ),
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          LangKeys.adminEmployeeMgmt.tr(),
+          style: AppTextStyles.heading.copyWith(
+            color: context.color.foreground,
           ),
         ),
-      ),
+        Text(
+          state.hasEmployees
+              ? '${state.employees.length} ${LangKeys.employees.tr()}'
+              : LangKeys.noEmployees.tr(),
+          style: AppTextStyles.caption.copyWith(
+            color: context.color.mutedForeground,
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _addButton(BuildContext context, EmployeeManagementState state) {
-    return GestureDetector(
-      onTap: state.isSaving || state.isDeleting
-          ? null
-          : () => showEmployeeFormSheet(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: state.isSaving || state.isDeleting
-              ? context.color.muted
-              : context.color.primary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 16, color: context.color.primaryForeground),
-            const SizedBox(width: 4),
-            Text(
-              LangKeys.add.tr(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: context.color.primaryForeground,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+/// Fetch, push, import, add.
+///
+/// A [Wrap] with the full width to itself, rather than four buttons squeezed
+/// in beside the heading: on a narrow window they run to a second line instead
+/// of overflowing the row.
+class _Toolbar extends StatelessWidget {
+  const _Toolbar({required this.state});
 
-  Widget _shimmer(BuildContext context) {
-    return ListView.separated(
-      itemCount: 5,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (_, _) => Container(
-        height: 64,
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(16),
+  final EmployeeManagementState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = state.isSaving || state.isDeleting;
+
+    return Wrap(
+      spacing: AppDimens.spaceSm,
+      runSpacing: AppDimens.spaceSm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        EmployeeDeviceFetchButton(state: state),
+        EmployeeDevicePushButton(state: state),
+        EmployeeImportButton(state: state),
+        AppCompactButton(
+          label: LangKeys.add.tr(),
+          icon: Icons.add,
+          onPressed: busy ? null : () => showEmployeeFormSheet(context),
         ),
-      ),
+      ],
     );
   }
 }

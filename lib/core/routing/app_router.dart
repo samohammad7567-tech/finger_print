@@ -30,7 +30,7 @@ class AppRouter {
   AppRouter._();
 
   static final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: "/admin/employees",
     // Re-runs the redirect whenever the session changes, so signing in or out
     // moves the user without any screen having to navigate.
     refreshListenable: GoRouterRefreshStream(getIt<AuthCubit>().stream),

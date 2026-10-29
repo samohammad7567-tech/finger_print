@@ -2,13 +2,23 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
-import '../../../../core/utils/attendance_utils.dart';
-import '../../../../core/widgets/glass_card.dart';
-import '../../../settings/presentation/cubit/settings_cubit.dart';
-import '../../data/models/admin_notification_model.dart';
-import '../cubit/admin_notifications_cubit.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_card_skeleton.dart';
+import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/app_page_header.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../settings/presentation/cubit/settings_cubit.dart';
+import '../cubit/admin_notifications_cubit.dart';
+import '../widgets/admin_notification_card.dart';
 
+/// The early-leave alerts, newest first.
+///
+/// Used to wrap itself in a second [Scaffold] with its own [AppBar], which the
+/// admin shell already supplies — so the page carried two title bars. It now
+/// uses [AppPageHeader], the way the other six pushed admin pages do.
 class AdminNotificationsBody extends StatelessWidget {
   const AdminNotificationsBody({super.key});
 
@@ -17,154 +27,97 @@ class AdminNotificationsBody extends StatelessWidget {
     final isArabic = context.watch<SettingsCubit>().state.isArabic;
 
     return BlocListener<AdminNotificationsCubit, AdminNotificationsState>(
-      listenWhen: (prev, curr) => curr.error != null,
+      listenWhen: (prev, curr) => curr.error != prev.error,
+      // Translated here and left on the state: it is also what the page
+      // renders when the load brought back nothing.
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.error!)));
-        context.read<AdminNotificationsCubit>().clearError();
+        if (state.error != null) AppToast.error(context, state.error!.tr());
       },
       child: BlocBuilder<AdminNotificationsCubit, AdminNotificationsState>(
         builder: (context, state) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(LangKeys.adminNotifications.tr()),
-              actions: [
-                if (state.unreadCount > 0)
-                  TextButton(
-                    onPressed: () =>
-                        context.read<AdminNotificationsCubit>().markAllAsRead(),
-                    child: Text(
-                      LangKeys.markAllRead.tr(),
-                      style: const TextStyle(fontSize: 12),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimens.pagePadding,
+                  AppDimens.pagePaddingTop,
+                  AppDimens.pagePadding,
+                  0,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: AppPageHeader(
+                        title: LangKeys.adminNotifications.tr(),
+                        fallbackLocation: '/admin',
+                      ),
                     ),
-                  ),
-              ],
-            ),
-            body: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.notifications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.notifications_none,
-                          size: 48,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          LangKeys.noAdminNotifications.tr(),
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    if (state.unreadCount > 0)
+                      TextButton(
+                        onPressed: () => context
+                            .read<AdminNotificationsCubit>()
+                            .markAllAsRead(),
+                        child: Text(
+                          LangKeys.markAllRead.tr(),
+                          style: AppTextStyles.controlSemiBold.copyWith(
+                            color: context.color.primary,
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.notifications.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) => _buildCard(
-                      context,
-                      state.notifications[index],
-                      isArabic,
-                    ),
-                  ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(child: _content(context, state, isArabic)),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildCard(
+  Widget _content(
     BuildContext context,
-    AdminNotificationModel notification,
+    AdminNotificationsState state,
     bool isArabic,
   ) {
-    return GlassCard(
-      onTap: notification.isRead
-          ? null
-          : () => context.read<AdminNotificationsCubit>().markAsRead(
-              notification.id,
-            ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color:
-                  (notification.isRead
-                          ? context.color.subtleForeground
-                          : context.color.warningSoft)
-                      .withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.warning_amber,
-              size: 20,
-              color: notification.isRead
-                  ? context.color.subtleForeground
-                  : context.color.warningSoft,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.employeeName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: notification.isRead
-                        ? FontWeight.normal
-                        : FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isArabic
-                      ? 'غادر مبكراً ${notification.earlyLeaveCount} مرات هذا الشهر'
-                      : 'Left early ${notification.earlyLeaveCount} times this month',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  formatDateLocalized(notification.date, isArabic: isArabic),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!notification.isRead)
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: context.color.warningSoft,
-                shape: BoxShape.circle,
-              ),
-            ),
-        ],
+    if (state.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppDimens.pagePadding),
+        child: Column(
+          children: <Widget>[
+            AppCardSkeleton(lines: 2, height: 78),
+            SizedBox(height: AppDimens.spaceSm),
+            AppCardSkeleton(lines: 2, height: 78),
+            SizedBox(height: AppDimens.spaceSm),
+            AppCardSkeleton(lines: 2, height: 78),
+          ],
+        ),
+      );
+    }
+
+    if (state.error != null && state.notifications.isEmpty) {
+      return AppErrorState(
+        messageKey: state.error,
+        onRetry: () => context.read<AdminNotificationsCubit>().load(),
+      );
+    }
+
+    if (state.notifications.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.notifications_none,
+        title: LangKeys.noAdminNotifications.tr(),
+        subtitle: LangKeys.everythingGood.tr(),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppDimens.pagePadding),
+      itemCount: state.notifications.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppDimens.spaceSm),
+      itemBuilder: (context, index) => AdminNotificationCard(
+        notification: state.notifications[index],
+        isArabic: isArabic,
       ),
     );
   }

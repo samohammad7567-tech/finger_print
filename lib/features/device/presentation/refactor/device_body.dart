@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/widgets/app_page_header.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../cubit/device_cubit.dart';
 import '../cubit/device_state.dart';
@@ -34,12 +35,9 @@ class DeviceBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                LangKeys.deviceTitle.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              AppPageHeader(
+                title: LangKeys.deviceTitle.tr(),
+                fallbackLocation: '/admin/settings',
               ),
               const SizedBox(height: 4),
               Text(

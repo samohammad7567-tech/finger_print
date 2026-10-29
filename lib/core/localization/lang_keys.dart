@@ -84,6 +84,7 @@ class LangKeys {
   static const onLeaveStatus = 'on_leave_status';
   static const alreadyRecordedStatus = 'already_recorded_status';
   static const backToList = 'back_to_list';
+  static const back = 'back';
 
   static const permissionsAndRequests = 'permissions_and_requests';
   static const add = 'add';
@@ -186,6 +187,7 @@ class LangKeys {
   static const adminNotifications = 'admin_notifications';
   static const noAdminNotifications = 'no_admin_notifications';
   static const markAllRead = 'mark_all_read';
+  static const notificationEarlyLeaveCount = 'notification_early_leave_count';
   static const earlyLeaveDays = 'early_leave_days';
   static const adminAttendanceDetail = 'admin_attendance_detail';
   static const viewDailyMonthly = 'view_daily_monthly';
@@ -438,6 +440,7 @@ class LangKeys {
   static const errorDeviceDeleteFailed = 'error_device_delete_failed';
   static const deleteAlsoRemovesFingerprint = 'delete_also_removes_fingerprint';
   static const deleteDeviceUnreachable = 'delete_device_unreachable';
+  static const deleteInProgress = 'delete_in_progress';
 
   static const enrollTitle = 'enroll_title';
   static const enrollNone = 'enroll_none';
@@ -469,6 +472,7 @@ class LangKeys {
   static const yes = 'yes';
   static const no = 'no';
   static const close = 'close';
+  static const retry = 'retry';
 
   static const importExcel = 'import_excel';
   static const importEmployees = 'import_employees';

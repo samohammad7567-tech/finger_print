@@ -5,6 +5,9 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/utils/attendance_utils.dart';
 import '../refactor/employee_pattern.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// One person's range, as a name and a row of chips.
 ///
@@ -18,17 +21,18 @@ class EmployeePatternRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final faded = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.55);
+    final faded = context.color.mutedForeground;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.spaceLg,
+        vertical: 10,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(flex: 3, child: _name(faded)),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimens.spaceSm),
           Expanded(
             flex: 5,
             child: pattern.isClean ? _clean(context) : _chips(context),
@@ -45,7 +49,7 @@ class EmployeePatternRow extends StatelessWidget {
         pattern.employee.fullName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        style: AppTextStyles.bodySemiBold,
       ),
       const SizedBox(height: 2),
       Text(
@@ -54,14 +58,14 @@ class EmployeePatternRow extends StatelessWidget {
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 10, color: faded),
+        style: AppTextStyles.micro.copyWith(color: faded),
       ),
     ],
   );
 
   Widget _chips(BuildContext context) => Wrap(
-    spacing: 4,
-    runSpacing: 4,
+    spacing: AppDimens.spaceXs,
+    runSpacing: AppDimens.spaceXs,
     children: [
       for (final flag in pattern.presentFlags)
         _flagChip(context, flag, pattern.countOf(flag)),
@@ -84,15 +88,15 @@ class EmployeePatternRow extends StatelessWidget {
 
   Widget _clean(BuildContext context) => Row(
     children: [
-      Icon(Icons.check_circle_outline, size: 14, color: context.color.success),
+      Icon(
+        Icons.check_circle_outline,
+        size: AppDimens.iconSm,
+        color: context.color.success,
+      ),
       const SizedBox(width: 6),
       Text(
         LangKeys.reportNoIssues.tr(),
-        style: TextStyle(
-          fontSize: 11,
-          color: context.color.success,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTextStyles.label.copyWith(color: context.color.success),
       ),
     ],
   );
@@ -112,15 +116,6 @@ class EmployeePatternRow extends StatelessWidget {
     color,
   );
 
-  static Widget _chip(String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
-    ),
-  );
+  static Widget _chip(String text, Color color) =>
+      AppTintedPill(label: text, color: color);
 }

@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/enrollment_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// The fingerprint section of the employee form.
 ///
@@ -24,12 +26,10 @@ class EmployeeFingerprintField extends StatelessWidget {
         final cubit = context.read<EnrollmentCubit>();
 
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppDimens.spaceMd),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(12),
+            color: context.color.muted,
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,17 +40,17 @@ class EmployeeFingerprintField extends StatelessWidget {
                     state.isEnrolled
                         ? Icons.fingerprint
                         : Icons.fingerprint_outlined,
-                    size: 20,
+                    size: AppDimens.iconXl,
                     color: state.isEnrolled
                         ? context.color.success
                         : context.color.subtleForeground,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppDimens.spaceSm),
                   Expanded(child: _summary(context, state)),
                   if (state.isBusy)
                     const SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: AppDimens.spaceLg,
+                      height: AppDimens.spaceLg,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                 ],
@@ -63,11 +63,10 @@ class EmployeeFingerprintField extends StatelessWidget {
                 _actionButton(context, state, cubit),
               ],
               if (state.error != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppDimens.spaceSm),
                 Text(
                   state.error!.tr(),
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: AppTextStyles.meta.copyWith(
                     color: context.color.destructive,
                   ),
                 ),
@@ -93,17 +92,16 @@ class EmployeeFingerprintField extends StatelessWidget {
       children: [
         Text(
           LangKeys.enrollTitle.tr(),
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          style: AppTextStyles.captionMedium.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
+          style: AppTextStyles.meta.copyWith(
             color: state.isEnrolled
                 ? context.color.success
-                : Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                : context.color.mutedForeground,
           ),
         ),
         // Shown as soon as the terminal has a slot, so the admin can see the
@@ -111,11 +109,8 @@ class EmployeeFingerprintField extends StatelessWidget {
         if (state.deviceUserId != null)
           Text(
             '${LangKeys.enrollDeviceId.tr()}: ${state.deviceUserId}',
-            style: TextStyle(
-              fontSize: 10,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            style: AppTextStyles.micro.copyWith(
+              color: context.color.mutedForeground,
             ),
           ),
       ],
@@ -128,27 +123,27 @@ class EmployeeFingerprintField extends StatelessWidget {
       children: [
         Text(
           LangKeys.enrollPlaceFingerHint.tr(),
-          style: const TextStyle(fontSize: 11, height: 1.4),
+          style: AppTextStyles.meta.copyWith(height: 1.4),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimens.spaceSm),
         Row(
           children: [
             Expanded(
               child: FilledButton.icon(
                 onPressed: cubit.confirm,
-                icon: const Icon(Icons.check, size: 16),
+                icon: const Icon(Icons.check, size: AppDimens.iconMd),
                 label: Text(
                   LangKeys.enrollDone.tr(),
-                  style: const TextStyle(fontSize: 12),
+                  style: AppTextStyles.caption,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppDimens.spaceSm),
             TextButton(
               onPressed: cubit.cancel,
               child: Text(
                 LangKeys.enrollCancel.tr(),
-                style: const TextStyle(fontSize: 12),
+                style: AppTextStyles.caption,
               ),
             ),
           ],
@@ -166,10 +161,10 @@ class EmployeeFingerprintField extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: state.isBusy ? null : () => cubit.start(name: nameOf()),
-        icon: const Icon(Icons.fingerprint, size: 16),
+        icon: const Icon(Icons.fingerprint, size: AppDimens.iconMd),
         label: Text(
           state.isEnrolled ? LangKeys.enrollRedo.tr() : LangKeys.enrollAdd.tr(),
-          style: const TextStyle(fontSize: 12),
+          style: AppTextStyles.caption,
         ),
       ),
     );

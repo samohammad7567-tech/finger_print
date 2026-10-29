@@ -7,6 +7,7 @@ import '../../../../core/widgets/glass_card.dart';
 import '../cubit/notifications_cubit.dart';
 import '../cubit/notifications_state.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class NotificationsBody extends StatelessWidget {
   const NotificationsBody({super.key});
@@ -73,27 +74,12 @@ class NotificationsBody extends StatelessWidget {
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: _typeColor(
-                                      context,
-                                      n.type,
-                                    ).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _typeColor(
-                                        context,
-                                        n.type,
-                                      ).withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    n.icon,
-                                    size: 20,
-                                    color: _typeColor(context, n.type),
-                                  ),
+                                AppIconBadge.tinted(
+                                  icon: n.icon,
+                                  color: _typeColor(context, n.type),
+                                  size: 40,
+                                  radius: 12,
+                                  borderAlpha: 0.3,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(

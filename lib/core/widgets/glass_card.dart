@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../style/theme/app_dimens.dart';
 import '../style/theme/context_extension.dart';
 
 class GlassCard extends StatelessWidget {
@@ -26,19 +27,19 @@ class GlassCard extends StatelessWidget {
       margin: margin,
       decoration: BoxDecoration(
         color: color ?? context.color.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         border: Border.all(
           color: color == null ? context.color.border : Colors.transparent,
         ),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           child: Padding(
-            padding: padding ?? const EdgeInsets.all(16),
+            padding: padding ?? const EdgeInsets.all(AppDimens.cardPadding),
             child: child,
           ),
         ),

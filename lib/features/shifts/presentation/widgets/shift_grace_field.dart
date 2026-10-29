@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// One allowance in minutes, stepped rather than typed.
 ///
@@ -56,25 +57,20 @@ class ShiftGraceField extends StatelessWidget {
             icon: Icons.remove,
             onPressed: minutes <= 0 ? null : () => onChanged(minutes - step),
           ),
-          Container(
-            constraints: const BoxConstraints(minWidth: 74),
+          AppTintedPill(
+            label: LangKeys.shiftMinutes.tr(args: ['$minutes']),
+            color: context.color.primary,
+            // Faded at zero: no grace is a real setting, not a missing value,
+            // so the pill should read as off rather than as empty.
+            textColor: context.color.primary.withValues(
+              alpha: minutes == 0 ? 0.45 : 1,
+            ),
+            fontSize: 13,
+            radius: 10,
+            tintAlpha: 0.12,
+            minWidth: 74,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: context.color.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              LangKeys.shiftMinutes.tr(args: ['$minutes']),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: context.color.primary.withValues(
-                  alpha: minutes == 0 ? 0.45 : 1,
-                ),
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
           _step(
             context,

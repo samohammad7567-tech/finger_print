@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 /// Everything on the confirm-identity dialog.
 ///
@@ -52,18 +53,12 @@ class AdminPasswordBody extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: context.color.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            Icons.shield_outlined,
-            size: 24,
-            color: context.color.primary,
-          ),
+        AppIconBadge.tinted(
+          icon: Icons.shield_outlined,
+          color: context.color.primary,
+          size: 48,
+          radius: 14,
+          tintAlpha: 0.12,
         ),
         const SizedBox(height: 14),
         Text(

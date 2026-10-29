@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../data/data_source/monthly_report_pdf_data_source.dart';
 import '../cubit/admin_attendance_cubit.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// One tap exports the month on screen. Nothing to pick first — the admin is
 /// already looking at the rows the file will contain.
@@ -32,10 +34,10 @@ class MonthlyReportExportButton extends StatelessWidget {
               height: 14,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.picture_as_pdf_outlined, size: 16),
+          : const Icon(Icons.picture_as_pdf_outlined, size: AppDimens.iconMd),
       label: Text(
         (busy ? LangKeys.reportPdfBuilding : LangKeys.reportPdf).tr(),
-        style: const TextStyle(fontSize: 12),
+        style: AppTextStyles.caption,
       ),
     );
   }

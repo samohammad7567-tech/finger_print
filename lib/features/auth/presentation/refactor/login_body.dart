@@ -8,6 +8,8 @@ import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/login_form.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
+import '../../../../core/widgets/app_loading_overlay.dart';
 
 class LoginBody extends StatelessWidget {
   const LoginBody({super.key});
@@ -31,7 +33,10 @@ class LoginBody extends StatelessWidget {
           return Stack(
             children: [
               _buildContent(context),
-              if (state.isLoading) _buildLoadingOverlay(context),
+              AppLoadingOverlay.maybe(
+                state.isLoading,
+                spinnerColor: context.color.primaryForeground,
+              ),
             ],
           );
         },
@@ -72,32 +77,14 @@ class LoginBody extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingOverlay(BuildContext context) {
-    return Container(
-      color: context.effects.scrim,
-      child: Center(
-        child: CircularProgressIndicator(
-          color: context.color.primaryForeground,
-        ),
-      ),
-    );
-  }
-
   Widget _buildLogo(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: context.color.primary,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Icon(
-            Icons.shield,
-            size: 40,
-            color: context.color.primaryForeground,
-          ),
+        AppIconBadge(
+          icon: Icons.shield,
+          color: context.color.primary,
+          size: 80,
+          radius: 24,
         ),
         const SizedBox(height: 16),
         Text(

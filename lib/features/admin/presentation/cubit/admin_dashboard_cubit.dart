@@ -61,7 +61,9 @@ class AdminDashboardCubit extends Cubit<AdminDashboardState> {
 
   Future<void> load() async {
     try {
-      emit(state.copyWith(isLoading: true));
+      // Retired by the next attempt, not by the toast, so a failed load
+      // leaves the page something it can still render and retry from.
+      emit(state.copyWith(isLoading: true, clearError: true));
       final today = getTodayDate();
       final results = await Future.wait([
         _repo.getRecordsByDate(today),

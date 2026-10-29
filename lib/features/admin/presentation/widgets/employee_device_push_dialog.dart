@@ -7,6 +7,8 @@ import '../../../device/data/models/zk_push_models.dart';
 import '../cubit/employee_management_cubit.dart';
 import 'employee_device_push_summary.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
 
 /// Approves a push before anything is written to the terminal.
 ///
@@ -25,32 +27,18 @@ class EmployeeDevicePushDialog extends StatelessWidget {
     // button underneath it.
     final nothingToDo = plan.isEmpty;
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(
-            Icons.upload_outlined,
-            size: 20,
-            color: context.color.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(LangKeys.devicePushTitle.tr())),
-        ],
-      ),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: nothingToDo
-              ? Text(
-                  LangKeys.devicePushNothing.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.color.mutedForeground,
-                  ),
-                )
-              : EmployeeDevicePushSummary(plan: plan),
-        ),
-      ),
+    return AppWideDialog(
+      title: LangKeys.devicePushTitle.tr(),
+      icon: Icons.upload_outlined,
+      iconColor: context.color.primary,
+      content: nothingToDo
+          ? Text(
+              LangKeys.devicePushNothing.tr(),
+              style: AppTextStyles.caption.copyWith(
+                color: context.color.mutedForeground,
+              ),
+            )
+          : EmployeeDevicePushSummary(plan: plan),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),

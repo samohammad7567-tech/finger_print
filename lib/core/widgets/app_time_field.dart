@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
 import '../style/theme/context_extension.dart';
+import 'app_tinted_pill.dart';
 
 /// One 'HH:mm' time, opened with the platform clock picker.
 ///
@@ -32,57 +35,58 @@ class AppTimeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final faded = context.color.subtleForeground;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppDimens.radius),
       onTap: () => _pick(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceMd,
+          vertical: AppDimens.spaceSm,
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: context.color.primary),
-            const SizedBox(width: 12),
+            Icon(icon, size: AppDimens.iconMd, color: context.color.primary),
+            const SizedBox(width: AppDimens.spaceMd),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 13),
+                style: AppTextStyles.body,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: context.color.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+            const SizedBox(width: AppDimens.spaceSm),
+            AppTintedPill(
+              label: value ?? placeholder,
+              color: context.color.primary,
+              // Faded while unset, so the placeholder reads as a prompt rather
+              // than as a time somebody already chose.
+              textColor: context.color.primary.withValues(
+                alpha: value == null ? 0.45 : 1,
               ),
-              child: Text(
-                value ?? placeholder,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: context.color.primary.withValues(
-                    alpha: value == null ? 0.45 : 1,
-                  ),
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+              fontSize: 13,
+              radius: AppDimens.radius,
+              tintAlpha: 0.12,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.spaceSm,
+                vertical: AppDimens.spaceXs,
               ),
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
             if (onCleared != null && value != null)
               IconButton(
                 onPressed: onCleared,
-                icon: const Icon(Icons.backspace_outlined, size: 14),
+                icon: const Icon(
+                  Icons.backspace_outlined,
+                  size: AppDimens.iconSm,
+                ),
                 visualDensity: VisualDensity.compact,
-                color: scheme.onSurface.withValues(alpha: 0.4),
+                color: faded,
               )
             else
-              Icon(
-                Icons.edit,
-                size: 14,
-                color: scheme.onSurface.withValues(alpha: 0.4),
-              ),
+              Icon(Icons.edit, size: AppDimens.iconSm, color: faded),
           ],
         ),
       ),

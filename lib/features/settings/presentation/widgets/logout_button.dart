@@ -5,6 +5,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class LogoutButton extends StatelessWidget {
   const LogoutButton({super.key});
@@ -52,18 +53,12 @@ class LogoutButton extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: context.color.destructive.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.logout,
-                size: 16,
-                color: context.color.destructive,
-              ),
+            AppIconBadge.tinted(
+              icon: Icons.logout,
+              color: context.color.destructive,
+              size: 32,
+              radius: 10,
+              tintAlpha: 0.2,
             ),
             const SizedBox(width: 12),
             Text(

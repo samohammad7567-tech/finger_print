@@ -8,6 +8,7 @@ import '../cubit/device_cubit.dart';
 import '../cubit/device_state.dart';
 import 'device_employee_picker.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// Device user ids seen in the punch log with no employee behind them.
 ///
@@ -101,20 +102,11 @@ class DeviceMappingCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Container(
+          AppTintedPill(
+            label: '#${user.deviceUserId}',
+            color: context.color.warningSoft,
+            fontSize: 12,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: context.color.warningSoft.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '#${user.deviceUserId}',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: context.color.warningSoft,
-              ),
-            ),
           ),
           const SizedBox(width: 8),
           Expanded(

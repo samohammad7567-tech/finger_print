@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
 import '../cubit/punch_report_cubit.dart';
 
 /// Collapses a month of ordinary days away, so a pattern is what is left.
@@ -18,7 +21,6 @@ class PunchIssuesToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final count = state.issueCount;
     final enabled = count > 0 || state.issuesOnly;
 
@@ -29,10 +31,13 @@ class PunchIssuesToggle extends StatelessWidget {
 
     final label = Text(
       '${LangKeys.reportIssuesOnly.tr()} ($count)',
-      style: const TextStyle(fontSize: 11),
+      style: AppTextStyles.label,
     );
 
-    const padding = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+    const padding = EdgeInsets.symmetric(
+      horizontal: AppDimens.spaceMd,
+      vertical: AppDimens.spaceSm,
+    );
 
     return state.issuesOnly
         ? FilledButton(
@@ -48,7 +53,8 @@ class PunchIssuesToggle extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: padding,
               minimumSize: Size.zero,
-              foregroundColor: scheme.onSurface.withValues(alpha: 0.75),
+              foregroundColor: context.color.mutedForeground,
+              side: BorderSide(color: context.color.border),
             ),
             child: label,
           );

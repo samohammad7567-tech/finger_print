@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
+import '../../../../core/widgets/app_note_banner.dart';
 
 /// Confirms clearing everything before a date.
 ///
@@ -16,57 +18,26 @@ Future<bool> showDataPurgeConfirmDialog(
 ) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(LangKeys.dataClearBeforeConfirmTitle.tr(args: [date])),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                LangKeys.dataClearBeforeConfirmMsg.tr(args: [date]),
-                style: const TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: ctx.color.warning.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: ctx.color.warning.withValues(alpha: 0.30),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16,
-                      color: ctx.color.warning,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        LangKeys.dataClearBeforeWarning.tr(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1.4,
-                          color: ctx.color.warning,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    builder: (ctx) => AppWideDialog(
+      title: LangKeys.dataClearBeforeConfirmTitle.tr(args: [date]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            LangKeys.dataClearBeforeConfirmMsg.tr(args: [date]),
+            style: const TextStyle(fontSize: 12),
           ),
-        ),
+          const SizedBox(height: 12),
+          AppNoteBanner(
+            icon: Icons.warning_amber_rounded,
+            text: LangKeys.dataClearBeforeWarning.tr(),
+            color: ctx.color.warning,
+            iconSize: 16,
+            borderAlpha: 0.30,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          ),
+        ],
       ),
       actions: [
         TextButton(

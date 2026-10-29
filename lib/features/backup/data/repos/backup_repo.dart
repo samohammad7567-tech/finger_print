@@ -25,8 +25,7 @@ class BackupRepo {
 
   Future<DataFootprint> footprint() => _dataSource.footprint();
 
-  Future<PurgeResult> purgeBefore(String date) =>
-      _dataSource.purgeBefore(date);
+  Future<PurgeResult> purgeBefore(String date) => _dataSource.purgeBefore(date);
 
   Future<void> eraseOperationalData() => _dataSource.eraseOperationalData();
 }

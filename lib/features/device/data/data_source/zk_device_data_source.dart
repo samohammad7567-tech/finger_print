@@ -245,6 +245,11 @@ class ZkDeviceDataSource {
     return _gate.run(() => _connectAndRun(settings, action));
   }
 
+  /// Ceiling on one `connect` call — see the note at the call site. Sized to
+  /// cover a slow but genuine handshake (ping, TCP probe, socket, CMD_CONNECT)
+  /// rather than to cut a working terminal off.
+  static const _connectTimeout = Duration(seconds: 35);
+
   Future<T> _connectAndRun<T>(
     DeviceSettingsModel settings,
     Future<T> Function(ZKTeco device) action,
@@ -265,7 +270,18 @@ class ZkDeviceDataSource {
 
     bool connected = false;
     try {
-      connected = await device.connect(ommitPing: settings.skipPing);
+      // Bounded on purpose. `connect` is not covered by the `timeout` above:
+      // it shells out to `ping.exe`, runs its own ten-second TCP probe, opens
+      // the socket on the constructor's timeout, and then waits for the
+      // CMD_CONNECT reply on `streamController.stream.first` with no timeout at
+      // all. A unit that accepts the socket and never answers — one whose
+      // single session is already held, or a firewall that drops the reply
+      // instead of refusing it — would leave this await pending forever, and
+      // with it the [ZkDeviceGate] lock that every other device operation
+      // queues behind.
+      connected = await device
+          .connect(ommitPing: settings.skipPing)
+          .timeout(_connectTimeout);
     } catch (e) {
       // The package raises for an unreachable host or a rejected comm key; both
       // become the one key the settings screen knows how to explain.

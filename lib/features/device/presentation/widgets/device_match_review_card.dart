@@ -9,6 +9,7 @@ import '../../data/models/pending_employee_match.dart';
 import '../cubit/device_cubit.dart';
 import '../cubit/device_state.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// Terminal users the sync would not import on its own, because somebody
 /// already on file answers to the same name.
@@ -47,20 +48,13 @@ class DeviceMatchReviewCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
+              AppTintedPill(
+                label: '${state.pendingMatches.length}',
+                color: context.color.warningSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                radius: 10,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: context.color.warningSoft.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${state.pendingMatches.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: context.color.warningSoft,
-                  ),
-                ),
               ),
             ],
           ),
@@ -126,20 +120,11 @@ class _MatchTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
+              AppTintedPill(
+                label: '#${match.deviceUserId}',
+                color: context.color.warningSoft,
+                fontSize: 12,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: context.color.warningSoft.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '#${match.deviceUserId}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: context.color.warningSoft,
-                  ),
-                ),
               ),
               const SizedBox(width: 8),
               Expanded(

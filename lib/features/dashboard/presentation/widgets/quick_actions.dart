@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
@@ -42,18 +43,11 @@ class QuickActions extends StatelessWidget {
                   onTap: () => context.push(a.path),
                   child: Column(
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: a.color,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          a.icon,
-                          size: 20,
-                          color: context.color.primaryForeground,
-                        ),
+                      AppIconBadge(
+                        icon: a.icon,
+                        color: a.color,
+                        size: 40,
+                        radius: 12,
                       ),
                       const SizedBox(height: 8),
                       Text(

@@ -5,6 +5,7 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/utils/work_schedule.dart';
 import '../../data/models/shift_model.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// One shift in the list: its hours, the two lines it forgives, how many
 /// people are on it, and the two things an admin can do to it.
@@ -120,21 +121,7 @@ class ShiftTile extends StatelessWidget {
   }
 
   static Widget _chip(BuildContext context, String label, Color color) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
+      AppTintedPill(label: label, color: color, tintAlpha: 0.12);
 
   static String _clock(int minutes) {
     final safe = minutes < 0 ? 0 : minutes;

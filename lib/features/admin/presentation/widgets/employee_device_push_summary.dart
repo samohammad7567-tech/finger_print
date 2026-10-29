@@ -5,6 +5,8 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../device/data/models/zk_push_models.dart';
 import 'employee_device_push_rows.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// The body of the push dialog: what the write would do, before it does it.
 ///
@@ -29,9 +31,9 @@ class EmployeeDevicePushSummary extends StatelessWidget {
           LangKeys.devicePushIntro.tr(
             args: ['${plan.entries.length}', '${plan.onDevice}'],
           ),
-          style: TextStyle(fontSize: 12, color: faded),
+          style: AppTextStyles.caption.copyWith(color: faded),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppDimens.spaceMd),
         PushSummaryRow(
           icon: Icons.person_add_alt,
           label: LangKeys.devicePushNew,
@@ -49,7 +51,7 @@ class EmployeeDevicePushSummary extends StatelessWidget {
             count: plan.extras.length,
             hint: LangKeys.devicePushExtraHint,
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppDimens.spaceMd),
         // The reassurance an admin needs before pressing send, and the reason
         // no wipe is offered anywhere on this dialog.
         PushSummaryNote(
@@ -58,7 +60,7 @@ class EmployeeDevicePushSummary extends StatelessWidget {
           color: context.color.success,
         ),
         if (plan.truncated.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimens.spaceSm),
           PushSummaryNote(
             icon: Icons.short_text,
             text:
@@ -68,7 +70,7 @@ class EmployeeDevicePushSummary extends StatelessWidget {
           ),
         ],
         if (plan.exceedsCapacity) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimens.spaceSm),
           PushSummaryNote(
             icon: Icons.storage_outlined,
             text: LangKeys.devicePushCapacity.tr(

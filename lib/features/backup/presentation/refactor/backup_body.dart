@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/widgets/app_page_header.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../cubit/backup_cubit.dart';
@@ -44,12 +45,9 @@ class BackupBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                LangKeys.backupTitle.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              AppPageHeader(
+                title: LangKeys.backupTitle.tr(),
+                fallbackLocation: '/admin/settings',
               ),
               const SizedBox(height: 12),
               GlassCard(

@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
+import '../style/theme/context_extension.dart';
+import 'app_icon_badge.dart';
+
+/// What a list shows when the answer is legitimately nothing.
+///
+/// Not an error and not a wait: the query ran, and there is no data. Said in
+/// the muted register, with the subtitle carrying what the operator could do
+/// about it — "add the first employee", not just "no employees".
+///
+/// The subtitle used to read `textTheme.bodySmall`, which `AppTheme` never
+/// fills in, so it silently rendered in Material's default face at Material's
+/// default size. It reads from the scale now.
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
     super.key,
@@ -16,43 +30,35 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48),
+        padding: const EdgeInsets.symmetric(vertical: AppDimens.space2xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: (iconColor ?? theme.colorScheme.primary).withValues(
-                  alpha: 0.2,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: iconColor ?? theme.colorScheme.primary,
-              ),
+          children: <Widget>[
+            AppIconBadge.tinted(
+              icon: icon,
+              color: iconColor ?? context.color.primary,
+              size: 48,
+              radius: AppDimens.radiusLg,
+              tintAlpha: 0.14,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             Text(
               title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.cardTitle.copyWith(
+                color: context.color.foreground,
               ),
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
+            if (subtitle != null) ...<Widget>[
+              const SizedBox(height: AppDimens.spaceXs),
               Text(
                 subtitle!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
                 textAlign: TextAlign.center,
+                style: AppTextStyles.caption.copyWith(
+                  color: context.color.mutedForeground,
+                ),
               ),
             ],
           ],

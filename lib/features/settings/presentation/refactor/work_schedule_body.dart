@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_page_header.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../cubit/work_schedule_cubit.dart';
@@ -33,12 +34,9 @@ class WorkScheduleBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                LangKeys.scheduleTitle.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              AppPageHeader(
+                title: LangKeys.scheduleTitle.tr(),
+                fallbackLocation: '/admin/settings',
               ),
               const SizedBox(height: 4),
               _hint(context, LangKeys.scheduleHint.tr()),

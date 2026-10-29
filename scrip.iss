@@ -170,6 +170,16 @@ Source: "{#VCRedistDir}\msvcp140_atomic_wait.dll";   DestDir: "{app}"; Flags: ig
 Source: "{#VCRedistDir}\msvcp140_codecvt_ids.dll";   DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#VCRedistDir}\vcruntime140.dll";           DestDir: "{app}"; Flags: ignoreversion
 Source: "{#VCRedistDir}\vcruntime140_1.dll";         DestDir: "{app}"; Flags: ignoreversion
+; Newer toolsets split pieces of the runtime into their own DLLs - v145 added
+; vcruntime140_threads.dll - and the runner imports whichever ones the build
+; machine's compiler decided to reference. A DLL the exe imports and the
+; installer does not carry is invisible here (a developer machine has the
+; system-wide redist to fall back on) and fatal on a clean one: the process
+; dies before wWinMain with 0xc0000135 and no window ever appears.
+; build_installer.ps1 now fails the build if the payload is missing one, and
+; these two cover the satellites the current and next toolset can pull in.
+Source: "{#VCRedistDir}\vcruntime140_threads.dll";   DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#VCRedistDir}\concrt140.dll";              DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}";       Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Comment: "{#MyAppName} {#MyAppVersion}"

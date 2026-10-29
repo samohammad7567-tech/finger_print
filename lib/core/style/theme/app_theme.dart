@@ -67,10 +67,8 @@ class AppTheme {
       // Set at the theme root so a Material widget that was never given an
       // explicit style still lands in the product's own face rather than in
       // whatever Flutter's default resolves to on this machine.
-      // Taken from the resolved body style rather than named directly: the
-      // faces come from `google_fonts`, which registers them under its own
-      // variant-qualified family names, so the literal "IBM Plex Sans" would
-      // match nothing and fall through to a system font.
+      // Taken from the body style rather than named literally, so the root
+      // and the scale can never drift apart.
       fontFamily: AppTextStyles.body.fontFamily,
       fontFamilyFallback: AppTextStyles.body.fontFamilyFallback,
       colorScheme: scheme,

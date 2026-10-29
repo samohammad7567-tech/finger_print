@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
 import '../style/theme/context_extension.dart';
 
 /// The weekdays a schedule does not work, as seven toggles.
@@ -55,10 +57,9 @@ class RestDayPicker extends StatelessWidget {
     required String label,
   }) {
     final selected = restDays.contains(weekday);
-    final scheme = Theme.of(context).colorScheme;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppDimens.radius),
       onTap: () {
         final next = {...restDays};
         // Toggling rather than replacing: a rest day is an independent yes or
@@ -69,26 +70,28 @@ class RestDayPicker extends StatelessWidget {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceMd,
+          vertical: AppDimens.spaceSm,
+        ),
         decoration: BoxDecoration(
           color: selected
               ? context.color.primary.withValues(alpha: 0.15)
-              : scheme.onSurface.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+              : context.color.backgroundSubtle,
+          borderRadius: BorderRadius.circular(AppDimens.radius),
           border: Border.all(
             color: selected
                 ? context.color.primary.withValues(alpha: 0.6)
-                : Theme.of(context).dividerColor,
+                : context.color.border,
           ),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          style: AppTextStyles.captionMedium.copyWith(
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             color: selected
                 ? context.color.primary
-                : scheme.onSurface.withValues(alpha: 0.7),
+                : context.color.mutedForeground,
           ),
         ),
       ),

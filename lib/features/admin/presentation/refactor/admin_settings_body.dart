@@ -10,6 +10,10 @@ import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../../../settings/presentation/cubit/settings_state.dart';
 import '../widgets/admin_settings_links.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 class AdminSettingsBody extends StatelessWidget {
   const AdminSettingsBody({super.key});
@@ -21,61 +25,45 @@ class AdminSettingsBody extends StatelessWidget {
         final authState = getIt<AuthCubit>().state;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimens.spaceLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 LangKeys.settings.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
+                style: AppTextStyles.heading.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimens.spaceLg),
               GlassCard(
                 child: Row(
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: context.color.primary,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(
-                        Icons.shield,
-                        size: 24,
-                        color: context.color.primaryForeground,
-                      ),
+                    AppIconBadge(
+                      icon: Icons.shield,
+                      color: context.color.primary,
+                      size: 48,
+                      radius: 16,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppDimens.spaceMd),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           authState.displayName,
-                          style: const TextStyle(
-                            fontSize: 15,
+                          style: AppTextStyles.brand.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Container(
+                        AppTintedPill(
+                          label: LangKeys.adminSystemManager.tr(),
+                          color: context.color.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          tintAlpha: 0.2,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: AppDimens.spaceSm,
                             vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.color.primary.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            LangKeys.adminSystemManager.tr(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: context.color.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
                           ),
                         ),
                       ],
@@ -83,7 +71,7 @@ class AdminSettingsBody extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimens.spaceLg),
               GlassCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -94,32 +82,21 @@ class AdminSettingsBody extends StatelessWidget {
                       label: LangKeys.appearance.tr(),
                       trailing: Text(
                         state.isDark ? 'Dark' : 'Light',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        style: AppTextStyles.caption.copyWith(
+                          color: context.color.mutedForeground,
                         ),
                       ),
                       onTap: () => context.read<SettingsCubit>().toggleDark(),
                     ),
-                    Divider(
-                      height: 1,
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.3),
-                    ),
+                    Divider(height: 1, color: context.color.border),
                     _tile(
                       context,
                       icon: Icons.language,
                       label: LangKeys.adminLanguage.tr(),
                       trailing: Text(
                         state.isArabic ? 'عربي' : 'English',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        style: AppTextStyles.caption.copyWith(
+                          color: context.color.mutedForeground,
                         ),
                       ),
                       onTap: () {
@@ -134,9 +111,9 @@ class AdminSettingsBody extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimens.spaceLg),
               const AdminSettingsLinks(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimens.spaceXl),
               GestureDetector(
                 onTap: () async {
                   final confirmed = await showDialog<bool>(
@@ -168,23 +145,21 @@ class AdminSettingsBody extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     color: context.color.destructive,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.logout,
-                        size: 18,
+                        size: AppDimens.iconLg,
                         color: context.color.primaryForeground,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimens.spaceSm),
                       Text(
                         LangKeys.signOut.tr(),
-                        style: TextStyle(
+                        style: AppTextStyles.controlSemiBold.copyWith(
                           color: context.color.primaryForeground,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -208,12 +183,15 @@ class AdminSettingsBody extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceLg,
+          vertical: 14,
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: context.color.primary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, style: const TextStyle(fontSize: 14))),
+            Icon(icon, size: AppDimens.iconLg, color: context.color.primary),
+            const SizedBox(width: AppDimens.spaceMd),
+            Expanded(child: Text(label, style: AppTextStyles.control)),
             ?trailing,
           ],
         ),

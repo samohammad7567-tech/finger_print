@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
 import '../style/theme/context_extension.dart';
 
 /// Transient messages, shown through the app's [Overlay].
@@ -113,38 +115,33 @@ class _ToastViewState extends State<_ToastView>
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 520),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                  horizontal: AppDimens.cardPadding,
+                  vertical: AppDimens.spaceMd,
                 ),
                 decoration: BoxDecoration(
                   color: _background,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.effects.scrim,
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                  // Plane 3, like every other surface that floats over the
+                  // page. This used to cast its own shadow out of the modal
+                  // scrim, which is a barrier colour, not a shade.
+                  boxShadow: context.effects.shadowLg,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       _icon,
-                      size: 18,
+                      size: AppDimens.iconMd,
                       color: context.color.primaryForeground,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppDimens.spaceSm),
                     Flexible(
                       child: Text(
                         widget.message,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: AppTextStyles.bodyMedium.copyWith(
                           color: context.color.primaryForeground,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),

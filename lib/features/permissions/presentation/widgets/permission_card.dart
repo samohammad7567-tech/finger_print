@@ -4,6 +4,7 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../data/models/permission_request_model.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class PermissionCard extends StatelessWidget {
   const PermissionCard({super.key, required this.permission});
@@ -44,15 +45,12 @@ class PermissionCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: cfg.$2.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: cfg.$2.withValues(alpha: 0.3)),
-                ),
-                child: Icon(cfg.$1, size: 20, color: cfg.$2),
+              AppIconBadge.tinted(
+                icon: cfg.$1,
+                color: cfg.$2,
+                size: 40,
+                radius: 12,
+                borderAlpha: 0.3,
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// The admin's tools: the hours everything is judged by, the terminal, and the
 /// backup. The punch report is not here — it lives on the bottom bar, because
@@ -28,29 +30,26 @@ class AdminSettingsLinks extends StatelessWidget {
       child: Column(
         children: [
           for (final (index, link) in links.indexed) ...[
-            if (index > 0)
-              Divider(
-                height: 1,
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
-              ),
+            if (index > 0) Divider(height: 1, color: context.color.border),
             InkWell(
               onTap: () => context.push(link.$3),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: AppDimens.spaceLg,
                   vertical: 14,
                 ),
                 child: Row(
                   children: [
-                    Icon(link.$1, size: 18, color: context.color.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        link.$2.tr(),
-                        style: const TextStyle(fontSize: 14),
-                      ),
+                    Icon(
+                      link.$1,
+                      size: AppDimens.iconLg,
+                      color: context.color.primary,
                     ),
-                    const Icon(Icons.chevron_right, size: 18),
+                    const SizedBox(width: AppDimens.spaceMd),
+                    Expanded(
+                      child: Text(link.$2.tr(), style: AppTextStyles.control),
+                    ),
+                    const Icon(Icons.chevron_right, size: AppDimens.iconLg),
                   ],
                 ),
               ),

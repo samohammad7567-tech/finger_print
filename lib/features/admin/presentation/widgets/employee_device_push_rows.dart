@@ -2,6 +2,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_note_banner.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// One counted outcome. Zero still shows: "0 new" is the answer to "is this
 /// going to add anybody", and hiding it leaves the question open.
@@ -24,11 +27,11 @@ class PushSummaryRow extends StatelessWidget {
     final hintText = hint;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppDimens.spaceSm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: context.color.primary),
+          Icon(icon, size: AppDimens.iconMd, color: context.color.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -36,16 +39,12 @@ class PushSummaryRow extends StatelessWidget {
               children: [
                 Text(
                   '$count · ${label.tr()}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTextStyles.bodySemiBold,
                 ),
                 if (hintText != null)
                   Text(
                     hintText.tr(),
-                    style: TextStyle(
-                      fontSize: 11,
+                    style: AppTextStyles.meta.copyWith(
                       color: context.color.mutedForeground,
                     ),
                   ),
@@ -73,25 +72,15 @@ class PushSummaryNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.30)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 11, color: color, height: 1.4),
-            ),
-          ),
-        ],
+    return AppNoteBanner(
+      icon: icon,
+      text: text,
+      color: color,
+      iconSize: 16,
+      borderAlpha: 0.30,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: AppDimens.spaceSm,
       ),
     );
   }

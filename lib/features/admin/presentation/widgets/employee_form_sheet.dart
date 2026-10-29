@@ -14,6 +14,8 @@ import '../cubit/employee_management_cubit.dart';
 import '../cubit/enrollment_cubit.dart';
 import 'employee_fingerprint_field.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 void showEmployeeFormSheet(BuildContext context, {EmployeeModel? employee}) {
   showModalBottomSheet(
@@ -113,27 +115,26 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   /// A disabled text box reads as something that ought to be editable and is
   /// not; this reads as a label, which is what it now is.
   Widget _employeeNumber(BuildContext context) {
-    final faded = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.6);
+    final faded = context.color.mutedForeground;
 
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: _idCtrl,
       builder: (context, value, _) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceMd,
+          vertical: 10,
+        ),
         decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(12),
+          color: context.color.muted,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         ),
         child: Row(
           children: [
             Icon(Icons.tag, size: 15, color: faded),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppDimens.spaceSm),
             Text(
               value.text.isEmpty ? '—' : value.text,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: AppTextStyles.controlSemiBold,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -141,7 +142,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                 LangKeys.employeeNumberGenerated.tr(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10, color: faded),
+                style: AppTextStyles.micro.copyWith(color: faded),
               ),
             ),
           ],
@@ -203,7 +204,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimens.radiusXl),
+        ),
       ),
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -223,18 +226,17 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
                   widget.employee != null
                       ? LangKeys.adminEditEmployee.tr()
                       : LangKeys.adminAddEmployee.tr(),
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: AppTextStyles.subheading.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20),
+                  icon: const Icon(Icons.close, size: AppDimens.iconXl),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             _label(LangKeys.adminEmployeeId.tr()),
             _employeeNumber(context),
             const SizedBox(height: 10),
@@ -268,7 +270,7 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
               hint: '+966...',
               keyboardType: TextInputType.phone,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             _toggle(
               LangKeys.adminHasHousing.tr(),
               _hasHousing,
@@ -284,9 +286,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
               _isActive,
               (v) => setState(() => _isActive = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             EmployeeFingerprintField(nameOf: () => _nameCtrl.text),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.spaceLg),
             AppPrimaryButton(
               onPressed: _saving ? null : _save,
               label: LangKeys.adminSave.tr(),
@@ -300,12 +302,11 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   }
 
   Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
+    padding: const EdgeInsets.only(bottom: AppDimens.spaceXs),
     child: Text(
       text,
-      style: TextStyle(
-        fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+      style: AppTextStyles.caption.copyWith(
+        color: context.color.mutedForeground,
       ),
     ),
   );
@@ -316,16 +317,16 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(label, style: AppTextStyles.control),
           GestureDetector(
             onTap: () => onChanged(!value),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 44,
-              height: 24,
+              height: AppDimens.spaceXl,
               decoration: BoxDecoration(
                 color: value ? context.color.primary : context.color.muted,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppDimens.radiusLg),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),

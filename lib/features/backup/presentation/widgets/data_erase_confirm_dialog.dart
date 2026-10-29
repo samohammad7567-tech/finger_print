@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
 
 /// Confirms erasing the staff list and everything hanging off it.
 ///
@@ -30,53 +31,39 @@ class _DataEraseConfirmDialogState extends State<DataEraseConfirmDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
+    return AppWideDialog(
+      title: LangKeys.dataEraseConfirmTitle.tr(),
+      icon: Icons.delete_forever_outlined,
+      iconColor: context.color.destructive,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.delete_forever_outlined,
-            size: 20,
-            color: context.color.destructive,
+          Text(
+            LangKeys.dataEraseConfirmMsg.tr(),
+            style: const TextStyle(fontSize: 12),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(LangKeys.dataEraseConfirmTitle.tr())),
+          const SizedBox(height: 10),
+          // What survives, spelled out. An admin who thinks this also wipes
+          // the fingerprints on the terminal would go and re-enrol forty
+          // people for nothing.
+          Text(
+            LangKeys.dataEraseKept.tr(),
+            style: TextStyle(fontSize: 11, color: context.color.success),
+          ),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _acknowledged,
+            onChanged: (on) => setState(() => _acknowledged = on ?? false),
+            title: Text(
+              LangKeys.dataEraseAck.tr(),
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
         ],
-      ),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                LangKeys.dataEraseConfirmMsg.tr(),
-                style: const TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 10),
-              // What survives, spelled out. An admin who thinks this also
-              // wipes the fingerprints on the terminal would go and re-enrol
-              // forty people for nothing.
-              Text(
-                LangKeys.dataEraseKept.tr(),
-                style: TextStyle(fontSize: 11, color: context.color.success),
-              ),
-              const SizedBox(height: 8),
-              CheckboxListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _acknowledged,
-                onChanged: (on) =>
-                    setState(() => _acknowledged = on ?? false),
-                title: Text(
-                  LangKeys.dataEraseAck.tr(),
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
       actions: [
         TextButton(
@@ -84,9 +71,7 @@ class _DataEraseConfirmDialogState extends State<DataEraseConfirmDialog> {
           child: Text(LangKeys.cancel.tr()),
         ),
         TextButton(
-          onPressed: _acknowledged
-              ? () => Navigator.pop(context, true)
-              : null,
+          onPressed: _acknowledged ? () => Navigator.pop(context, true) : null,
           child: Text(
             LangKeys.confirm.tr(),
             style: TextStyle(

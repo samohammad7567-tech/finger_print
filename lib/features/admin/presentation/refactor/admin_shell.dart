@@ -7,6 +7,9 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../cubit/admin_notifications_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key, required this.child});
@@ -50,37 +53,28 @@ class _AdminShellState extends State<AdminShell> {
       elevation: 0,
       title: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: context.color.primary,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.shield,
-              size: 16,
-              color: context.color.primaryForeground,
-            ),
+          AppIconBadge(
+            icon: Icons.shield,
+            color: context.color.primary,
+            size: 32,
+            radius: 10,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimens.spaceSm),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 LangKeys.appName.tr(),
-                style: TextStyle(
-                  fontSize: 13,
+                style: AppTextStyles.bodySemiBold.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: context.color.foreground,
                 ),
               ),
               Text(
                 LangKeys.adminPanel.tr(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: context.color.primary,
+                style: AppTextStyles.micro.copyWith(
                   fontWeight: FontWeight.w500,
+                  color: context.color.primary,
                 ),
               ),
             ],
@@ -94,16 +88,11 @@ class _AdminShellState extends State<AdminShell> {
               onPressed: () => context.push('/admin/notifications'),
               icon: Badge(
                 isLabelVisible: state.unreadCount > 0,
-                label: Text(
-                  '${state.unreadCount}',
-                  style: const TextStyle(fontSize: 10),
-                ),
+                label: Text('${state.unreadCount}', style: AppTextStyles.micro),
                 backgroundColor: context.color.warningSoft,
                 child: Icon(
                   Icons.notifications_outlined,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: context.color.mutedForeground,
                 ),
               ),
             );
@@ -116,10 +105,10 @@ class _AdminShellState extends State<AdminShell> {
   Widget _buildBottomNav(BuildContext context, bool isDark) {
     final location = GoRouterState.of(context).matchedLocation;
     final tabs = [
-      ('/admin', Icons.dashboard, LangKeys.adminHome),
+      // ('/admin', Icons.dashboard, LangKeys.adminHome),
       ('/admin/employees', Icons.people, LangKeys.adminEmployees),
-      ('/admin/permissions', Icons.description, LangKeys.permits),
-      ('/admin/reports', Icons.bar_chart, LangKeys.adminReportsTab),
+      // ('/admin/permissions', Icons.description, LangKeys.permits),
+      // ('/admin/reports', Icons.bar_chart, LangKeys.adminReportsTab),
       ('/admin/punch-report', Icons.fingerprint, LangKeys.reportTab),
       ('/admin/settings', Icons.settings, LangKeys.settings),
     ];
@@ -131,7 +120,10 @@ class _AdminShellState extends State<AdminShell> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimens.spaceSm,
+            vertical: AppDimens.spaceSm,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: tabs.map((tab) {
@@ -149,16 +141,16 @@ class _AdminShellState extends State<AdminShell> {
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: active ? context.color.primary : null,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            AppDimens.radiusLg,
+                          ),
                         ),
                         child: Icon(
                           tab.$2,
-                          size: 20,
+                          size: AppDimens.iconXl,
                           color: active
                               ? context.color.primaryForeground
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                              : context.color.mutedForeground,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -167,14 +159,11 @@ class _AdminShellState extends State<AdminShell> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 9,
+                        style: AppTextStyles.micro.copyWith(
                           fontWeight: FontWeight.w500,
                           color: active
                               ? context.color.primary
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                              : context.color.mutedForeground,
                         ),
                       ),
                     ],

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/utils/attendance_utils.dart';
 import '../cubit/admin_attendance_cubit.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
 
 class AdminDatePicker extends StatelessWidget {
   const AdminDatePicker({super.key, required this.isArabic});
@@ -64,7 +65,7 @@ class _MonthPicker extends StatelessWidget {
           },
           child: Text(
             label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: AppTextStyles.brand.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         IconButton(
@@ -117,10 +118,7 @@ class _DayPicker extends StatelessWidget {
             );
             if (picked != null) cubit.loadDay(picked);
           },
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
+          child: Text(label, style: AppTextStyles.controlSemiBold),
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right),

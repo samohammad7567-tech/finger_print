@@ -215,11 +215,7 @@ class AppDatabase {
 
   /// Enough of the schema to tell one of our backups from any other SQLite
   /// file an admin might pick by mistake.
-  static const _requiredTables = {
-    'users',
-    'employees',
-    'attendance_records',
-  };
+  static const _requiredTables = {'users', 'employees', 'attendance_records'};
 
   static Future<void> _removeSidecars(String target) async {
     for (final suffix in const ['-wal', '-shm']) {

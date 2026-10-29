@@ -2,6 +2,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
 import '../cubit/admin_attendance_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
 
@@ -16,8 +18,8 @@ class AdminViewToggle extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        color: context.color.muted,
+        borderRadius: BorderRadius.circular(AppDimens.radius),
       ),
       child: Row(
         children: [
@@ -53,21 +55,20 @@ class _ToggleButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimens.spaceMd,
+          vertical: AppDimens.spaceXs,
+        ),
         decoration: BoxDecoration(
           color: active ? context.color.primary : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+          style: AppTextStyles.label.copyWith(
             color: active
                 ? context.color.primaryForeground
-                : Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                : context.color.mutedForeground,
           ),
         ),
       ),

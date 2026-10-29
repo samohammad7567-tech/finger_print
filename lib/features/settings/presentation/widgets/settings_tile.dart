@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class SettingsTile extends StatelessWidget {
   const SettingsTile({
@@ -27,16 +28,12 @@ class SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 16, color: context.color.primary),
+            AppIconBadge.tinted(
+              icon: icon,
+              color: context.color.primary,
+              size: 32,
+              radius: 10,
+              tintAlpha: 0.1,
             ),
             const SizedBox(width: 12),
             Expanded(

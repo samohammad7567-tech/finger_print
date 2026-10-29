@@ -29,6 +29,22 @@ class ZkLiveCaptureDataSource {
   StreamSubscription<AttendanceLog?>? _subscription;
   Timer? _retry;
 
+  /// Ceiling on a single [_open] attempt.
+  ///
+  /// `ZKTeco.connect` is not bounded by the `timeout` passed to the
+  /// constructor. It shells out to `ping.exe`, then runs its own TCP probe on a
+  /// hard-coded ten-second timeout, then opens the real socket on the
+  /// constructor's twenty, and only then sends CMD_CONNECT — which parks on
+  /// `streamController.stream.first` with **no timeout at all**. A terminal
+  /// that accepts the connection and then says nothing (another session already
+  /// holds it, or a firewall that swallows the reply rather than refusing it)
+  /// leaves that await pending for the life of the process, with `_subscription`
+  /// still null and no retry armed, so live capture never comes back.
+  ///
+  /// The value covers a slow but genuine handshake — ping, probe and socket
+  /// end to end — and cuts the pathological case loose.
+  static const _openTimeout = Duration(seconds: 35);
+
   DeviceSettingsModel? _settings;
 
   /// Whether the caller wants live capture running. Survives suspensions, so
@@ -68,8 +84,20 @@ class ZkLiveCaptureDataSource {
         debug: kDebugMode,
       );
 
-      final connected = await device.connect(ommitPing: settings.skipPing);
+      final connected = await device
+          .connect(ommitPing: settings.skipPing)
+          .timeout(_openTimeout, onTimeout: () => false);
+
       if (!connected) {
+        // Drops whatever half-open socket the attempt left behind, so the
+        // terminal is free for the next try rather than holding its single
+        // session against a client that has stopped listening.
+        try {
+          device.zkSocket?.destroy();
+        } catch (_) {}
+        try {
+          device.zkClient?.close();
+        } catch (_) {}
         _scheduleRetry();
         return;
       }

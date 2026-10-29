@@ -313,8 +313,9 @@ class EmployeeImportExcelDataSource {
     // never talked out of it by another field's looser spelling.
     for (final entry in _aliases.entries) {
       for (var column = 0; column < headings.length; column++) {
-        if (claimed.contains(column) || columns.containsKey(entry.key))
+        if (claimed.contains(column) || columns.containsKey(entry.key)) {
           continue;
+        }
         final match = entry.value.any(
           (alias) => NameMatching.key(alias) == headings[column],
         );

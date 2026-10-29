@@ -37,7 +37,9 @@ class AdminNotificationsCubit extends Cubit<AdminNotificationsState> {
 
   Future<void> load() async {
     try {
-      emit(state.copyWith(isLoading: true));
+      // Cleared by the attempt that supersedes it, so a failed load leaves
+      // the page an error it can still describe after the toast has gone.
+      emit(state.copyWith(isLoading: true, clearError: true));
       final results = await Future.wait([
         _repo.getNotifications(),
         _repo.getUnreadCount(),

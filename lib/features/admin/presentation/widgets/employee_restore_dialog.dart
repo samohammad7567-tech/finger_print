@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/employee_management_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_wide_dialog.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Explains a fetch that found people on the terminal and imported none of
 /// them, and offers the only thing that can fix it.
@@ -45,69 +48,58 @@ class _EmployeeRestoreDialogState extends State<EmployeeRestoreDialog> {
   @override
   Widget build(BuildContext context) {
     final deleted = widget.outcome.deleted;
-    final faded = Theme.of(
-      context,
-    ).colorScheme.onSurface.withValues(alpha: 0.6);
+    final faded = context.color.mutedForeground;
 
-    return AlertDialog(
-      title: Row(
+    return AppWideDialog(
+      title: LangKeys.restoreTitle.tr(),
+      icon: Icons.restore_from_trash_outlined,
+      iconColor: context.color.warningSoft,
+      // The hint stays put and the list under it scrolls on its own.
+      scrollable: false,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.restore_from_trash_outlined,
-            size: 20,
-            color: context.color.warningSoft,
+          Text(
+            LangKeys.restoreHint.tr(
+              args: ['${widget.outcome.readFromDevice}', '${deleted.length}'],
+            ),
+            style: AppTextStyles.caption.copyWith(color: faded),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(LangKeys.restoreTitle.tr())),
-        ],
-      ),
-      content: SizedBox(
-        width: 460,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              LangKeys.restoreHint.tr(
-                args: ['${widget.outcome.readFromDevice}', '${deleted.length}'],
-              ),
-              style: TextStyle(fontSize: 12, color: faded),
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    for (final user in deleted)
-                      CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        value: _selected.contains(user.deviceUserId),
-                        onChanged: (on) => setState(() {
-                          if (on ?? false) {
-                            _selected.add(user.deviceUserId);
-                          } else {
-                            _selected.remove(user.deviceUserId);
-                          }
-                        }),
-                        title: Text(
-                          user.name.isEmpty
-                              ? LangKeys.deviceMatchNoName.tr()
-                              : user.name,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        subtitle: Text(
-                          '#${user.deviceUserId}',
-                          style: TextStyle(fontSize: 11, color: faded),
-                        ),
+          const SizedBox(height: AppDimens.spaceMd),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  for (final user in deleted)
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _selected.contains(user.deviceUserId),
+                      onChanged: (on) => setState(() {
+                        if (on ?? false) {
+                          _selected.add(user.deviceUserId);
+                        } else {
+                          _selected.remove(user.deviceUserId);
+                        }
+                      }),
+                      title: Text(
+                        user.name.isEmpty
+                            ? LangKeys.deviceMatchNoName.tr()
+                            : user.name,
+                        style: AppTextStyles.body,
                       ),
-                  ],
-                ),
+                      subtitle: Text(
+                        '#${user.deviceUserId}',
+                        style: AppTextStyles.meta.copyWith(color: faded),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       actions: [
         TextButton(

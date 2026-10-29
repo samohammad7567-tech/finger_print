@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/models/holiday_model.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_tinted_pill.dart';
 
 /// One end of a holiday's range, opened with the platform date picker.
 ///
@@ -33,20 +34,13 @@ class HolidayDateRow extends StatelessWidget {
             Icon(icon, size: 18, color: context.color.primary),
             const SizedBox(width: 12),
             Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
-            Container(
+            AppTintedPill(
+              label: HolidayModel.isoDate(value),
+              color: context.color.primary,
+              fontSize: 14,
+              radius: 10,
+              tintAlpha: 0.12,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: context.color.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                HolidayModel.isoDate(value),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: context.color.primary,
-                ),
-              ),
             ),
             const SizedBox(width: 4),
             Icon(

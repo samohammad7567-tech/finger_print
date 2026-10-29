@@ -10,6 +10,9 @@ import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/widgets/admin_password_dialog.dart';
 import '../cubit/punch_report_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/widgets/app_note_banner.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// The admin's one correction of a day's punches.
 ///
@@ -65,21 +68,22 @@ class _PunchCorrectionSheetState extends State<PunchCorrectionSheet> {
           children: [
             Text(
               LangKeys.reportCorrectTitle.tr(),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              style: AppTextStyles.subheading.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               '${widget.row.employee.fullName}  ·  ${widget.row.record.date}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.caption.copyWith(
                 color: scheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimens.spaceLg),
             _warning(context),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimens.spaceMd),
             AppTimeField(
               label: LangKeys.reportCheckIn.tr(),
               value: _checkIn,
@@ -96,7 +100,7 @@ class _PunchCorrectionSheetState extends State<PunchCorrectionSheet> {
             ),
             const SizedBox(height: 20),
             _actions(context),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.spaceSm),
           ],
         ),
       ),
@@ -105,28 +109,14 @@ class _PunchCorrectionSheetState extends State<PunchCorrectionSheet> {
 
   /// Said before the fields, not after them: by the time somebody has picked a
   /// time they have already decided.
-  Widget _warning(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: context.color.warning.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      children: [
-        Icon(
-          Icons.warning_amber_rounded,
-          size: 18,
-          color: context.color.warning,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            LangKeys.reportCorrectWarning.tr(),
-            style: const TextStyle(fontSize: 11, height: 1.4),
-          ),
-        ),
-      ],
-    ),
+  Widget _warning(BuildContext context) => AppNoteBanner(
+    icon: Icons.warning_amber_rounded,
+    text: LangKeys.reportCorrectWarning.tr(),
+    color: context.color.warning,
+    // The tint carries the warning; the sentence itself stays in the body ink
+    // so it reads as prose rather than as a second alert.
+    textColor: context.color.foreground,
+    crossAxisAlignment: CrossAxisAlignment.center,
   );
 
   Widget _actions(BuildContext context) {
@@ -142,7 +132,7 @@ class _PunchCorrectionSheetState extends State<PunchCorrectionSheet> {
               child: Text(LangKeys.cancel.tr()),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimens.spaceMd),
           Expanded(
             flex: 2,
             child: AppPrimaryButton(

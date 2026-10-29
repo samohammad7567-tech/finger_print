@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
+import '../style/theme/context_extension.dart';
+
+/// The app's single-line input.
+///
+/// Deliberately thin: the fill, the borders, the focus ring, the content
+/// padding and the hint style all come from `AppTheme`'s
+/// `inputDecorationTheme`, which already says an input is a *recess* taking
+/// the plane below whatever it sits on. This widget used to restate every one
+/// of those — a different fill, a 12px radius against the system's 4, 16/14
+/// padding against 9/7 — which is why a form inside a card never quite matched
+/// the controls beside it.
+///
+/// What is left here is the part the theme cannot know: which icon leads the
+/// field, and how it behaves.
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -37,7 +53,6 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return TextField(
       controller: controller,
       obscureText: obscureText,
@@ -48,39 +63,23 @@ class AppTextField extends StatelessWidget {
       onTap: onTap,
       autofocus: autofocus,
       onSubmitted: onSubmitted,
-      style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
+      style: AppTextStyles.body.copyWith(color: context.color.foreground),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          fontSize: 14,
-        ),
-        prefixIcon: prefixIcon != null
-            ? Icon(
+        prefixIcon: prefixIcon == null
+            ? null
+            : Icon(
                 prefixIcon,
-                size: 18,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              )
-            : null,
+                size: AppDimens.iconMd,
+                color: context.color.subtleForeground,
+              ),
+        // Keeps the glyph from forcing the field taller than
+        // `AppDimens.controlHeight`, which Material's 48px default would.
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: AppDimens.iconButtonWidth,
+          minHeight: AppDimens.controlHeight,
+        ),
         suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.dividerColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.dividerColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
-        ),
       ),
     );
   }

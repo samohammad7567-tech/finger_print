@@ -2,6 +2,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
 import '../cubit/punch_report_cubit.dart';
 import 'punch_correction_sheet.dart';
 import 'punch_report_cells.dart';
@@ -19,7 +22,6 @@ class PunchReportTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     // Read once for the whole table: which rows are still correctable is a
     // question about today, and every row must be asked the same one.
     final today = DateTime.now();
@@ -27,13 +29,18 @@ class PunchReportTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        headingRowHeight: 44,
-        dataRowMinHeight: 40,
+        // The table's own metrics, rather than Material's touch-sized
+        // defaults: this is a dense desktop report, and the eight pixels a row
+        // gives back here is a ninth row on screen.
+        headingRowHeight: AppDimens.tableHeaderHeight,
+        dataRowMinHeight: AppDimens.tableRowHeight,
         // A day with several breaks needs more than one line for them.
         dataRowMaxHeight: double.infinity,
-        columnSpacing: 22,
-        headingRowColor: WidgetStatePropertyAll(
-          theme.colorScheme.onSurface.withValues(alpha: 0.04),
+        columnSpacing: AppDimens.tableCellPaddingH * 2,
+        headingRowColor: WidgetStatePropertyAll(context.color.backgroundSubtle),
+        dividerThickness: 1,
+        border: TableBorder(
+          horizontalInside: BorderSide(color: context.color.borderSoft),
         ),
         columns: [
           DataColumn(label: PunchCells.head(LangKeys.adminEmployees.tr())),
@@ -66,7 +73,9 @@ class PunchReportTable extends StatelessWidget {
               row.employee.fullName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: AppTextStyles.captionMedium.copyWith(
+                color: context.color.foreground,
+              ),
             ),
           ),
         ),
@@ -76,12 +85,12 @@ class PunchReportTable extends StatelessWidget {
         DataCell(PunchCells.time(context, r.checkOutTime)),
         DataCell(PunchCells.breaks(context, row.breaks)),
         DataCell(
-          PunchCells.text(
-            row.breaks.isEmpty ? '—' : PunchCells.duration(row.breakTime),
-          ),
+          row.breaks.isEmpty
+              ? PunchCells.text('—', color: context.color.subtleForeground)
+              : PunchCells.durationCell(context, row.breakTime),
         ),
         DataCell(PunchCells.overtime(context, row)),
-        DataCell(PunchCells.text(PunchCells.duration(row.worked), bold: true)),
+        DataCell(PunchCells.durationCell(context, row.worked, bold: true)),
         DataCell(PunchStatusCell(row: row)),
         DataCell(_correctButton(context, row, today)),
       ],
@@ -113,7 +122,7 @@ class PunchReportTable extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       icon: Icon(
         row.isCorrected ? Icons.lock_outline : Icons.edit_outlined,
-        size: 16,
+        size: AppDimens.iconMd,
       ),
     );
   }

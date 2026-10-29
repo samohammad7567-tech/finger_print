@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/style/theme/context_extension.dart';
 import '../../../../core/widgets/glass_card.dart';
+import '../../../../core/widgets/app_icon_badge.dart';
 
 class StatCard extends StatelessWidget {
   const StatCard({
@@ -41,19 +42,7 @@ class StatCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  size: 14,
-                  color: context.color.primaryForeground,
-                ),
-              ),
+              AppIconBadge(icon: icon, color: color, size: 28, radius: 8),
             ],
           ),
           Text(

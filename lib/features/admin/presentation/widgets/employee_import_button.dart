@@ -6,6 +6,8 @@ import '../../../../core/localization/lang_keys.dart';
 import '../../data/data_source/employee_import_excel_data_source.dart';
 import '../cubit/employee_management_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Adds a whole staff list at once, from the spreadsheet the admin already
 /// keeps. The blank template sits behind the same button: somebody who has no
@@ -50,9 +52,12 @@ class EmployeeImportButton extends StatelessWidget {
         ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: AppDimens.spaceSm,
+        ),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           border: Border.all(
             color: context.color.primary.withValues(alpha: enabled ? 0.5 : 0.2),
           ),
@@ -69,7 +74,7 @@ class EmployeeImportButton extends StatelessWidget {
             else
               Icon(
                 Icons.table_view_outlined,
-                size: 16,
+                size: AppDimens.iconMd,
                 color: enabled
                     ? context.color.primary
                     : context.color.subtleForeground,
@@ -77,8 +82,7 @@ class EmployeeImportButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               (busy ? LangKeys.importing : LangKeys.importExcel).tr(),
-              style: TextStyle(
-                fontSize: 12,
+              style: AppTextStyles.captionMedium.copyWith(
                 fontWeight: FontWeight.w600,
                 color: enabled
                     ? context.color.primary
@@ -99,24 +103,20 @@ class EmployeeImportButton extends StatelessWidget {
   }) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 18, color: context.color.primary),
+      Icon(icon, size: AppDimens.iconLg, color: context.color.primary),
       const SizedBox(width: 10),
       Flexible(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
+            Text(title, style: AppTextStyles.bodySemiBold),
             const SizedBox(height: 2),
             Text(
               hint,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
+              style: AppTextStyles.meta.copyWith(
                 color: context.color.subtleForeground,
               ),
             ),

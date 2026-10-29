@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../cubit/employee_management_cubit.dart';
 import '../../../../core/style/theme/context_extension.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/app_dimens.dart';
 
 /// Writes the staff list onto the fingerprint terminal — the other direction
 /// to [EmployeeDeviceFetchButton].
@@ -26,15 +28,18 @@ class EmployeeDevicePushButton extends StatelessWidget {
     return Tooltip(
       message: LangKeys.devicePushHint.tr(),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         onTap: enabled
             ? () =>
                   context.read<EmployeeManagementCubit>().preparePushToDevice()
             : null,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: AppDimens.spaceSm,
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
             border: Border.all(
               color: context.color.primary.withValues(
                 alpha: enabled ? 0.5 : 0.2,
@@ -53,7 +58,7 @@ class EmployeeDevicePushButton extends StatelessWidget {
               else
                 Icon(
                   Icons.upload_outlined,
-                  size: 16,
+                  size: AppDimens.iconMd,
                   color: enabled
                       ? context.color.primary
                       : context.color.subtleForeground,
@@ -61,8 +66,7 @@ class EmployeeDevicePushButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 _label(state),
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.captionMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: enabled
                       ? context.color.primary

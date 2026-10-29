@@ -1,13 +1,18 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/localization/lang_keys.dart';
+import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
 import '../../../../core/utils/attendance_utils.dart';
-import '../../../../core/widgets/glass_card.dart';
+import '../../../../core/widgets/app_card_skeleton.dart';
+import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../cubit/admin_dashboard_cubit.dart';
-import '../../../../core/style/theme/context_extension.dart';
+import '../widgets/admin_dashboard_cards.dart';
+import '../widgets/admin_stat_card.dart';
 
 class AdminDashboardBody extends StatelessWidget {
   const AdminDashboardBody({super.key});
@@ -17,47 +22,38 @@ class AdminDashboardBody extends StatelessWidget {
     final isArabic = context.watch<SettingsCubit>().state.isArabic;
 
     return BlocListener<AdminDashboardCubit, AdminDashboardState>(
-      listenWhen: (prev, curr) => curr.error != null,
+      listenWhen: (prev, curr) => prev.error != curr.error,
       listener: (context, state) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(state.error!)));
-        context.read<AdminDashboardCubit>().clearError();
+        // Was a bare SnackBar carrying the untranslated key.
+        if (state.error != null) AppToast.error(context, state.error!.tr());
       },
       child: BlocBuilder<AdminDashboardCubit, AdminDashboardState>(
         builder: (context, state) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(
+              AppDimens.pagePadding,
+              AppDimens.pagePaddingTop,
+              AppDimens.pagePadding,
+              AppDimens.pagePaddingBottom,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Text(
                   LangKeys.adminDashboard.tr(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.heading.copyWith(
+                    color: context.color.foreground,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimens.spaceXs),
                 Text(
                   formatDateLocalized(getTodayDate(), isArabic: isArabic),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  style: AppTextStyles.caption.copyWith(
+                    color: context.color.mutedForeground,
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (state.isLoading)
-                  _buildShimmer(context)
-                else ...[
-                  _buildStats(context, state),
-                  const SizedBox(height: 16),
-                  _buildAttendanceRate(context, state),
-                  const SizedBox(height: 16),
-                  _buildAttendanceDetailButton(context),
-                ],
+                const SizedBox(height: AppDimens.sectionGap),
+                _content(context, state),
               ],
             ),
           );
@@ -66,227 +62,98 @@ class AdminDashboardBody extends StatelessWidget {
     );
   }
 
-  Widget _buildStats(BuildContext context, AdminDashboardState state) {
-    final cards = [
-      (
-        LangKeys.adminTotalEmployees.tr(),
-        '${state.totalEmployees}',
-        Icons.people,
-        context.color.primary,
+  Widget _content(BuildContext context, AdminDashboardState state) {
+    if (state.isLoading) {
+      // Three to a row, matching _StatGrid exactly, so the six figures do
+      // not re-wrap as they resolve.
+      return const AppStatRowSkeleton(count: 6, cardHeight: 84, perRow: 3);
+    }
+
+    // Nothing counted and an error on file: the load failed rather than the
+    // company being empty.
+    if (state.error != null && state.totalEmployees == 0) {
+      return AppErrorState(
+        messageKey: state.error,
+        onRetry: () => context.read<AdminDashboardCubit>().load(),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _StatGrid(state: state),
+        const SizedBox(height: AppDimens.sectionGap),
+        AdminAttendanceRateCard(state: state),
+        const SizedBox(height: AppDimens.sectionGap),
+        const AdminAttendanceLinkCard(),
+      ],
+    );
+  }
+}
+
+/// The six figures, three to a row on a full-width window and two to a row
+/// under [AppDimens.statFoldWidth] — folding beats truncating a count.
+class _StatGrid extends StatelessWidget {
+  const _StatGrid({required this.state});
+
+  final AdminDashboardState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <AdminStatCard>[
+      AdminStatCard(
+        label: LangKeys.adminTotalEmployees.tr(),
+        value: '${state.totalEmployees}',
+        icon: Icons.people,
+        tone: context.color.primary,
       ),
-      (
-        LangKeys.adminPresentToday.tr(),
-        '${state.present}',
-        Icons.check_circle,
-        context.color.success,
+      AdminStatCard(
+        label: LangKeys.adminPresentToday.tr(),
+        value: '${state.present}',
+        icon: Icons.check_circle,
+        tone: context.color.success,
       ),
-      (
-        LangKeys.absent.tr(),
-        '${state.absent}',
-        Icons.cancel,
-        context.color.destructive,
+      AdminStatCard(
+        label: LangKeys.absent.tr(),
+        value: '${state.absent}',
+        icon: Icons.cancel,
+        tone: context.color.destructive,
       ),
-      (
-        LangKeys.late.tr(),
-        '${state.late}',
-        Icons.access_time,
-        context.color.warning,
+      AdminStatCard(
+        label: LangKeys.late.tr(),
+        value: '${state.late}',
+        icon: Icons.access_time,
+        tone: context.color.warning,
       ),
-      (
-        LangKeys.adminTodayRecords.tr(),
-        '${state.totalRecords}',
-        Icons.trending_up,
-        context.color.primary,
+      AdminStatCard(
+        label: LangKeys.adminTodayRecords.tr(),
+        value: '${state.totalRecords}',
+        icon: Icons.trending_up,
+        tone: context.color.primary,
       ),
-      (
-        LangKeys.adminUnregistered.tr(),
-        '${state.unregistered}',
-        Icons.warning_amber,
-        context.color.warning,
+      AdminStatCard(
+        label: LangKeys.adminUnregistered.tr(),
+        value: '${state.unregistered}',
+        icon: Icons.warning_amber,
+        tone: context.color.warning,
       ),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.6,
-      children: cards
-          .map(
-            (c) => GlassCard(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          c.$1,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: c.$4,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          c.$3,
-                          size: 14,
-                          color: context.color.primaryForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    c.$2,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final perRow = constraints.maxWidth < AppDimens.statFoldWidth ? 2 : 3;
+        final gaps = (perRow - 1) * AppDimens.cardGap;
+        final width = (constraints.maxWidth - gaps) / perRow;
 
-  Widget _buildAttendanceRate(BuildContext context, AdminDashboardState state) {
-    if (state.totalEmployees == 0) return const SizedBox.shrink();
-    return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            LangKeys.adminAttendanceRateToday.tr(),
-            style: TextStyle(
-              fontSize: 13,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: state.attendanceRate / 100,
-                    minHeight: 12,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation(context.color.success),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '${state.attendanceRate}%',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttendanceDetailButton(BuildContext context) {
-    return GlassCard(
-      onTap: () => context.push('/admin/attendance'),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: context.color.primary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.list_alt,
-              size: 20,
-              color: context.color.primaryForeground,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  LangKeys.adminAttendanceDetail.tr(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  LangKeys.viewDailyMonthly.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShimmer(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.6,
-      children: List.generate(
-        6,
-        (_) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      ),
+        return Wrap(
+          spacing: AppDimens.cardGap,
+          runSpacing: AppDimens.cardGap,
+          children: <Widget>[
+            for (final card in cards)
+              SizedBox(width: width, height: 84, child: card),
+          ],
+        );
+      },
     );
   }
 }

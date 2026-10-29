@@ -180,8 +180,17 @@ class AdminAttendanceCubit extends Cubit<AdminAttendanceState> {
 
   Future<void> loadDay([DateTime? date]) async {
     final d = date ?? state.selectedDate;
+    // Cleared here rather than by the screen: an error belongs to the load
+    // that produced it, so the next attempt is what retires it. The body used
+    // to clear it as soon as the toast was shown, which left the page with a
+    // failure it could no longer describe.
     emit(
-      state.copyWith(selectedDate: d, isMonthlyView: false, isLoading: true),
+      state.copyWith(
+        selectedDate: d,
+        isMonthlyView: false,
+        isLoading: true,
+        clearError: true,
+      ),
     );
 
     try {
@@ -216,7 +225,14 @@ class AdminAttendanceCubit extends Cubit<AdminAttendanceState> {
 
   Future<void> loadMonth([DateTime? date]) async {
     final d = date ?? state.selectedDate;
-    emit(state.copyWith(selectedDate: d, isMonthlyView: true, isLoading: true));
+    emit(
+      state.copyWith(
+        selectedDate: d,
+        isMonthlyView: true,
+        isLoading: true,
+        clearError: true,
+      ),
+    );
 
     try {
       final startDate = '${d.year}-${d.month.toString().padLeft(2, '0')}-01';

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_empty_state.dart';
+import '../../../../core/widgets/app_page_header.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../cubit/holidays_cubit.dart';
@@ -35,12 +36,9 @@ class HolidaysBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                LangKeys.holidaysTitle.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              AppPageHeader(
+                title: LangKeys.holidaysTitle.tr(),
+                fallbackLocation: '/admin/settings',
               ),
               const SizedBox(height: 4),
               _hint(context, LangKeys.holidaysHint.tr()),

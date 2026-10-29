@@ -46,7 +46,10 @@ class BackupActionsCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             LangKeys.backupRestoreHint.tr(),
-            style: TextStyle(fontSize: 11, color: context.color.mutedForeground),
+            style: TextStyle(
+              fontSize: 11,
+              color: context.color.mutedForeground,
+            ),
           ),
           const SizedBox(height: 4),
           // Said here rather than only in the dialog: it is the fact that makes

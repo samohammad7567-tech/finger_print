@@ -1,6 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../utils/attendance_utils.dart';
+import '../style/theme/app_dimens.dart';
+import '../style/theme/app_text_styles.dart';
 import '../style/theme/context_extension.dart';
 
 class AppStatusChip extends StatelessWidget {
@@ -18,24 +20,24 @@ class AppStatusChip extends StatelessWidget {
     final display = getStatusDisplay(status, context.color);
     final padding = switch (size) {
       StatusChipSize.sm => const EdgeInsets.symmetric(
-        horizontal: 8,
+        horizontal: AppDimens.spaceSm,
         vertical: 2,
       ),
       StatusChipSize.md => const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 4,
+        horizontal: AppDimens.spaceMd,
+        vertical: AppDimens.spaceXs,
       ),
     };
-    final fontSize = switch (size) {
-      StatusChipSize.sm => 10.0,
-      StatusChipSize.md => 12.0,
+    final textStyle = switch (size) {
+      StatusChipSize.sm => AppTextStyles.micro,
+      StatusChipSize.md => AppTextStyles.captionMedium,
     };
 
     return Container(
       padding: padding,
       decoration: BoxDecoration(
         color: display.color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppDimens.radiusFull),
         border: Border.all(color: display.color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -49,14 +51,10 @@ class AppStatusChip extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppDimens.spaceXs),
           Text(
             display.labelKey.tr(),
-            style: TextStyle(
-              color: display.color,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-            ),
+            style: textStyle.copyWith(color: display.color),
           ),
         ],
       ),
