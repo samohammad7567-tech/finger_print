@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:attendence/core/utils/punch_pairs.dart';
 import 'package:attendence/features/admin/data/data_source/punch_report_pdf_data_source.dart';
 
 /// The exported report. A PDF that fails to render fails at the moment an
@@ -17,44 +18,50 @@ void main() {
     if (await folder.exists()) await folder.delete(recursive: true);
   });
 
-  const labels = PunchReportPdfLabels(
+  final labels = PunchReportPdfLabels(
     title: 'تقرير البصمات',
     range: '2026-08-24  →  2026-08-24',
     generatedAt: 'أُنشئ في 2026-08-24 18:00',
-    name: 'الموظف',
+    serial: 'م',
+    surname: 'اسم العائلة',
+    name: 'الاسم الكامل',
+    personalId: 'رقم الهوية',
+    accommodation: 'حالة السكن',
+    traveler: 'مسافر',
+    overnight: 'مبيت',
     date: 'التاريخ',
     day: 'اليوم',
-    checkIn: 'الحضور',
-    checkOut: 'الانصراف',
+    pairCheckIn: (index) => index == 1 ? 'أول حضور' : 'حضور $index',
+    pairCheckOut: (index) => index == 1 ? 'أول انصراف' : 'انصراف $index',
     breakTime: 'مدة الاستراحات',
     overtime: 'الوقت الإضافي',
     workTime: 'ساعات العمل',
-    status: 'الحالة',
     totals: 'الإجماليات',
   );
 
   const rows = [
     PunchReportPdfRow(
+      serial: 1,
+      surname: 'الغامدي',
       name: 'ابو يوسف',
+      personalId: '1234567890',
+      accommodation: 'مبيت',
       date: '2026-08-24',
       dayName: 'الاثنين',
-      checkIn: '08:00',
-      checkOut: '19:00',
-      breakTime: '1h 15m',
-      overtime: '1h 30m',
-      workTime: '8h 15m',
-      status: 'حاضر',
+      pairs: [
+        PunchPair(checkIn: '08:00', checkOut: '12:00'),
+        PunchPair(checkIn: '13:00', checkOut: '19:00'),
+      ],
     ),
     PunchReportPdfRow(
+      serial: 2,
+      surname: 'Khalid',
       name: 'Sara Khalid',
+      personalId: '0987654321',
+      accommodation: 'مسافر',
       date: '2026-08-24',
       dayName: 'Monday',
-      checkIn: '08:45',
-      checkOut: '17:05',
-      breakTime: '0h 30m',
-      overtime: '—',
-      workTime: '7h 50m',
-      status: 'Late',
+      pairs: [PunchPair(checkIn: '08:45', checkOut: '17:05')],
     ),
   ];
 

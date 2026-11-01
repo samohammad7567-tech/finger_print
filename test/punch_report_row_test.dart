@@ -27,10 +27,12 @@ void main() {
     String? breakInTime,
     String? overtimeIn,
     String? overtimeOut,
+    List<String> punches = const [],
     WorkSchedule schedule = const WorkSchedule(),
   }) => PunchReportRow(
     employee: who,
     schedule: schedule,
+    punches: punches,
     record: AttendanceRecordModel(
       id: 'r1',
       employeeId: who.id,
@@ -44,6 +46,38 @@ void main() {
       overtimeOutTime: overtimeOut,
     ),
   );
+
+  test(
+    'raw scans are paired in order and the odd last scan is a check-out',
+    () {
+      final r = row(punches: const ['08:00', '12:00', '17:00']);
+
+      expect(r.pairs, hasLength(2));
+      expect(r.pairs[0].checkIn, '08:00');
+      expect(r.pairs[0].checkOut, '12:00');
+      expect(r.pairs[1].checkIn, isNull);
+      expect(r.pairs[1].checkOut, '17:00');
+    },
+  );
+
+  test('a corrected day reads its stored times rather than the raw log', () {
+    final r = PunchReportRow(
+      employee: employee,
+      punches: const ['08:00', '17:00'],
+      record: AttendanceRecordModel(
+        id: 'r1',
+        employeeId: employee.id,
+        date: '2026-08-24',
+        checkInTime: '09:00',
+        checkOutTime: '16:00',
+        correctedAt: '2026-08-24 18:00:00',
+      ),
+    );
+
+    expect(r.pairs, hasLength(1));
+    expect(r.pairs.single.checkIn, '09:00');
+    expect(r.pairs.single.checkOut, '16:00');
+  });
 
   test('every break is deducted from worked time, not only the first', () {
     final r = row(

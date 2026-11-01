@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/enrollment_finger.dart';
 import '../../../device/data/data_source/zk_enrollment_data_source.dart';
 import '../../../device/data/data_source/device_settings_local_data_source.dart';
 
@@ -31,17 +32,33 @@ class EnrollmentState {
 
   final String? error;
 
+  /// The finger the next capture will be attached to.
+  final int finger;
+
+  /// Finger slots the terminal is known to hold a template in.
+  final Set<int> enrolledFingers;
+
+  /// True while the existing templates are being read back from the terminal.
+  final bool isLoadingFingers;
+
   const EnrollmentState({
     this.stage = EnrollmentStage.idle,
     this.user,
     this.error,
+    this.finger = EnrollmentFinger.rightThumb,
+    this.enrolledFingers = const {},
+    this.isLoadingFingers = false,
   });
 
   bool get isBusy =>
       stage == EnrollmentStage.preparing || stage == EnrollmentStage.verifying;
 
   bool get isWaiting => stage == EnrollmentStage.waitingForFinger;
-  bool get isEnrolled => stage == EnrollmentStage.enrolled;
+
+  /// Whether the *selected* finger is enrolled. Other fingers may be too.
+  bool get isEnrolled => enrolledFingers.contains(finger);
+
+  bool get hasAnyEnrolled => enrolledFingers.isNotEmpty;
 
   /// What gets written to `employees.device_user_id` on save.
   String? get deviceUserId => user?.deviceUserId;
@@ -51,10 +68,16 @@ class EnrollmentState {
     ZkEnrolledUser? user,
     String? error,
     bool clearError = false,
+    int? finger,
+    Set<int>? enrolledFingers,
+    bool? isLoadingFingers,
   }) => EnrollmentState(
     stage: stage ?? this.stage,
     user: user ?? this.user,
     error: clearError ? null : (error ?? this.error),
+    finger: finger ?? this.finger,
+    enrolledFingers: enrolledFingers ?? this.enrolledFingers,
+    isLoadingFingers: isLoadingFingers ?? this.isLoadingFingers,
   );
 }
 
@@ -79,15 +102,91 @@ class EnrollmentCubit extends Cubit<EnrollmentState> {
 
   /// Seeds the state for an employee that is already mapped, so the form can
   /// show "enrolled" without another trip to the device.
-  void seed({String? deviceUserId, required String name}) {
+  void seed({
+    String? deviceUserId,
+    required String name,
+    Set<int> enrolledFingers = const {},
+  }) {
     final id = (deviceUserId ?? '').trim();
-    if (id.isEmpty) return;
+    if (id.isEmpty) {
+      emit(
+        EnrollmentState(
+          stage: EnrollmentStage.idle,
+          enrolledFingers: enrolledFingers,
+        ),
+      );
+      return;
+    }
     emit(
       EnrollmentState(
         stage: EnrollmentStage.idle,
-        user: ZkEnrolledUser(uid: 0, deviceUserId: id, name: name),
+        user: ZkEnrolledUser(uid: 0, deviceUserId: id, name: name.trim()),
+        // What the app last saw on the terminal. The live read that follows
+        // replaces this, but until then the form can still say how many
+        // fingers were enrolled.
+        enrolledFingers: enrolledFingers,
       ),
     );
+  }
+
+  /// Chooses which finger the next capture belongs to.
+  ///
+  /// Changing the selection after a completed scan clears the "enrolled" stage,
+  /// so the summary describes the newly selected finger rather than the last
+  /// one that happened to be scanned.
+  void selectFinger(int finger) {
+    if (finger < 0 || finger >= EnrollmentFinger.count) return;
+    if (state.isBusy || state.isWaiting) return;
+    if (finger == state.finger) return;
+
+    emit(
+      state.copyWith(
+        stage: EnrollmentStage.idle,
+        finger: finger,
+        clearError: true,
+      ),
+    );
+  }
+
+  /// Reads which fingers the terminal already holds for a mapped employee.
+  Future<void> loadEnrolledFingers() async {
+    final deviceUserId = state.deviceUserId;
+    if (deviceUserId == null || state.isLoadingFingers) return;
+
+    emit(state.copyWith(isLoadingFingers: true, clearError: true));
+
+    try {
+      try {
+        await _enrollment.cancelEnrollment(_settings.read());
+      } catch (_) {}
+      await _releaseSession();
+
+      final result = await _enrollment.fingerprints(
+        _settings.read(),
+        deviceUserId: deviceUserId,
+      );
+      if (isClosed) return;
+
+      if (result == null) {
+        emit(state.copyWith(isLoadingFingers: false));
+        return;
+      }
+
+      emit(
+        state.copyWith(
+          user: ZkEnrolledUser(
+            uid: result.uid,
+            deviceUserId: deviceUserId,
+            name: state.user?.name ?? '',
+          ),
+          enrolledFingers: result.fingers,
+          isLoadingFingers: false,
+        ),
+      );
+    } catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(isLoadingFingers: false));
+    }
   }
 
   /// Step one: put the person on the terminal, then start the sensor.
@@ -101,26 +200,38 @@ class EnrollmentCubit extends Cubit<EnrollmentState> {
 
     emit(state.copyWith(stage: EnrollmentStage.preparing, clearError: true));
 
+    // Any earlier attempt still holding the device has to go first.
+    await _releaseSession();
+    try {
+      await _enrollment.cancelEnrollment(_settings.read());
+    } catch (_) {}
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
     try {
       final settings = _settings.read();
 
-      // A finger can only be attached to a user the device already knows.
-      final user = await _enrollment.upsertUser(
+      final result = await _enrollment.beginEnrollmentFor(
         settings,
         name: name.trim(),
-        deviceUserId: state.deviceUserId,
+        deviceUserId: state.deviceUserId ?? state.user?.deviceUserId,
+        finger: state.finger,
       );
+      _session = result.session;
 
-      // Any earlier attempt still holding the device has to go first.
-      await _releaseSession();
-
-      _session = await _enrollment.beginEnrollment(
-        settings,
-        uid: user.uid,
-        deviceUserId: user.deviceUserId,
+      emit(
+        state.copyWith(
+          stage: EnrollmentStage.waitingForFinger,
+          user: result.user,
+        ),
       );
-
-      emit(state.copyWith(stage: EnrollmentStage.waitingForFinger, user: user));
+    } on ZkEnrollmentStartException catch (e) {
+      emit(
+        state.copyWith(
+          stage: EnrollmentStage.idle,
+          user: e.user,
+          error: e.errorKey,
+        ),
+      );
     } on ApiException catch (e) {
       emit(state.copyWith(stage: EnrollmentStage.idle, error: e.errorKey));
     } catch (_) {
@@ -139,6 +250,7 @@ class EnrollmentCubit extends Cubit<EnrollmentState> {
     final session = _session;
     if (user == null || state.isBusy) return;
 
+    final finger = session?.finger ?? state.finger;
     emit(state.copyWith(stage: EnrollmentStage.verifying, clearError: true));
 
     try {
@@ -146,11 +258,21 @@ class EnrollmentCubit extends Cubit<EnrollmentState> {
       // one otherwise, for a session the watchdog already closed.
       final ok = session != null && !session.isClosed
           ? await _enrollment.finishEnrollment(session)
-          : await _enrollment.hasFingerprint(_settings.read(), uid: user.uid);
+          : await _enrollment.hasFingerprint(
+              _settings.read(),
+              uid: user.uid,
+              finger: finger,
+            );
       _session = null;
 
       if (ok) {
-        emit(state.copyWith(stage: EnrollmentStage.enrolled, clearError: true));
+        emit(
+          state.copyWith(
+            stage: EnrollmentStage.enrolled,
+            enrolledFingers: {...state.enrolledFingers, finger},
+            clearError: true,
+          ),
+        );
         return;
       }
 

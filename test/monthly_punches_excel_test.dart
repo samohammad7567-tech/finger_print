@@ -4,6 +4,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:attendence/core/utils/punch_pairs.dart';
 import 'package:attendence/features/admin/data/data_source/monthly_punches_excel_data_source.dart';
 
 /// The monthly punch workbook. It is handed to an employee who thinks their
@@ -20,51 +21,62 @@ void main() {
     if (await folder.exists()) await folder.delete(recursive: true);
   });
 
-  const labels = MonthlyPunchesExcelLabels(
+  final labels = MonthlyPunchesExcelLabels(
     title: 'تقرير البصمات الشهري',
     month: 'September 2026',
     generatedAt: 'Generated 2026-09-30 18:00',
     allSheet: 'All',
-    employee: 'الموظف',
+    serial: 'م',
+    surname: 'اسم العائلة',
+    employee: 'الاسم الكامل',
+    personalId: 'رقم الهوية',
+    accommodation: 'حالة السكن',
+    traveler: 'مسافر',
+    overnight: 'مبيت',
     employeeNumber: 'الرقم الوظيفي',
     department: 'القسم',
     date: 'التاريخ',
     day: 'اليوم',
-    checkIn: 'الحضور',
-    checkOut: 'الانصراف',
-    breaks: 'الاستراحات',
+    pairCheckIn: (index) => switch (index) {
+      1 => 'أول حضور',
+      2 => 'ثاني حضور',
+      _ => 'حضور $index',
+    },
+    pairCheckOut: (index) => switch (index) {
+      1 => 'أول انصراف',
+      2 => 'ثاني انصراف',
+      _ => 'انصراف $index',
+    },
     breakTime: 'مدة الاستراحات',
     overtime: 'الوقت الإضافي',
     worked: 'ساعات العمل',
-    status: 'الحالة',
     corrected: 'صُحّح بواسطة',
     totals: 'الإجماليات',
     presentDays: 'أيام الحضور',
     absentDays: 'أيام الغياب',
   );
 
-  MonthlyPunchRow row(String date, {String status = 'present'}) =>
-      MonthlyPunchRow(
-        date: date,
-        dayName: 'Tuesday',
-        checkIn: '08:00',
-        checkOut: '17:10',
-        breaks: '12:00 → 12:30',
-        breakTime: '0h 30m',
-        overtime: '—',
-        worked: '8h 40m',
-        status: status,
-      );
+  MonthlyPunchRow row(String date, {bool absent = false}) => MonthlyPunchRow(
+    date: date,
+    dayName: 'Tuesday',
+    pairs: absent
+        ? const []
+        : const [PunchPair(checkIn: '08:00', checkOut: '17:10')],
+  );
 
   MonthlyPunchEmployee employee({
+    String surname = 'الغامدي',
     String name = 'ابو يوسف',
     String number = 'EMP001',
     List<MonthlyPunchRow>? rows,
   }) => MonthlyPunchEmployee(
     name: name,
+    surname: surname,
+    personalId: '1234567890',
+    accommodation: 'مبيت',
     number: number,
     department: 'Ops',
-    rows: rows ?? [row('2026-09-01'), row('2026-09-02', status: 'absent')],
+    rows: rows ?? [row('2026-09-01'), row('2026-09-02', absent: true)],
     totals: const [(label: 'ساعات العمل', value: '17h 20m')],
   );
 
@@ -113,17 +125,22 @@ void main() {
     ]);
 
     final all = book.tables['All']!;
-    final header = headerRowOf(all, labels.employee);
+    final header = headerRowOf(all, labels.serial);
 
-    expect(text(all, header, 0), labels.employee);
-    expect(text(all, header, 3), labels.date);
-    expect(text(all, header, 12), labels.corrected);
+    expect(text(all, header, 0), labels.serial);
+    expect(text(all, header, 2), labels.employee);
+    expect(text(all, header, 7), labels.date);
+    expect(text(all, header, 11), labels.corrected);
 
     // Two employees, two days each, in the order they were given.
-    expect(text(all, header + 1, 0), 'ابو يوسف');
-    expect(text(all, header + 1, 1), 'EMP001');
-    expect(text(all, header + 1, 3), '2026-09-01');
-    expect(text(all, header + 3, 0), 'Sara Khalid');
+    expect(text(all, header + 1, 0), '1');
+    expect(text(all, header + 1, 1), 'الغامدي');
+    expect(text(all, header + 1, 2), 'ابو يوسف');
+    expect(text(all, header + 1, 3), 'EMP001');
+    expect(text(all, header + 1, 5), '1234567890');
+    expect(text(all, header + 1, 6), 'مبيت');
+    expect(text(all, header + 1, 7), '2026-09-01');
+    expect(text(all, header + 3, 2), 'Sara Khalid');
   });
 
   test("an employee's own tab carries their days and their totals", () async {
@@ -135,11 +152,12 @@ void main() {
     final header = headerRowOf(sheet, labels.date);
     // The day columns only — the tab is already theirs.
     expect(text(sheet, header, 0), labels.date);
-    expect(text(sheet, header, 8), labels.status);
+    expect(text(sheet, header, 2), 'أول حضور');
+    expect(text(sheet, header, 4), labels.corrected);
 
     expect(text(sheet, header + 1, 0), '2026-09-01');
     expect(text(sheet, header + 1, 2), '08:00');
-    expect(text(sheet, header + 2, 8), 'absent');
+    expect(text(sheet, header + 2, 2), '—');
 
     final totals = headerRowOf(sheet, labels.totals);
     expect(text(sheet, totals + 1, 0), 'ساعات العمل');
@@ -148,17 +166,7 @@ void main() {
 
   test('every day of the month gets a line, silence included', () async {
     // What the cubit hands over for a day nobody scanned.
-    const empty = MonthlyPunchRow(
-      date: '2026-09-03',
-      dayName: 'Thursday',
-      checkIn: '—',
-      checkOut: '—',
-      breaks: '—',
-      breakTime: '—',
-      overtime: '—',
-      worked: '—',
-      status: 'Not Recorded',
-    );
+    const empty = MonthlyPunchRow(date: '2026-09-03', dayName: 'Thursday');
 
     final book = await writeAndRead([
       employee(rows: [row('2026-09-01'), empty]),
@@ -169,7 +177,33 @@ void main() {
 
     expect(text(sheet, header + 2, 0), '2026-09-03');
     expect(text(sheet, header + 2, 2), '—');
-    expect(text(sheet, header + 2, 8), 'Not Recorded');
+    expect(text(sheet, header + 2, 3), '—');
+  });
+
+  test('a day with more scans adds the extra pair columns', () async {
+    final book = await writeAndRead([
+      employee(
+        rows: [
+          const MonthlyPunchRow(
+            date: '2026-09-01',
+            dayName: 'Tuesday',
+            pairs: [
+              PunchPair(checkIn: '08:00', checkOut: '12:00'),
+              PunchPair(checkIn: '13:00', checkOut: '18:00'),
+            ],
+          ),
+        ],
+      ),
+    ]);
+
+    final sheet = book.tables['ابو يوسف']!;
+    final header = headerRowOf(sheet, labels.date);
+
+    expect(text(sheet, header, 4), 'ثاني حضور');
+    expect(text(sheet, header, 5), 'ثاني انصراف');
+    expect(text(sheet, header + 1, 4), '13:00');
+    expect(text(sheet, header + 1, 5), '18:00');
+    expect(text(sheet, header, 6), labels.corrected);
   });
 
   test('a name Excel would reject is made into a tab it accepts', () async {

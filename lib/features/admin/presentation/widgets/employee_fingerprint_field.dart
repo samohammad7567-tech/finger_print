@@ -3,21 +3,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/localization/lang_keys.dart';
-import '../cubit/enrollment_cubit.dart';
-import '../../../../core/style/theme/context_extension.dart';
-import '../../../../core/style/theme/app_text_styles.dart';
 import '../../../../core/style/theme/app_dimens.dart';
+import '../../../../core/style/theme/app_text_styles.dart';
+import '../../../../core/style/theme/context_extension.dart';
+import '../cubit/enrollment_cubit.dart';
+import 'enrollment_actions.dart';
+import 'finger_selector.dart';
 
 /// The fingerprint section of the employee form.
 ///
 /// Enrolment is a two-handed operation: the app puts the terminal into capture
-/// mode, the person presses their finger on the *device*, and then the admin
-/// confirms here so the app can verify a template landed.
-class EmployeeFingerprintField extends StatelessWidget {
+/// mode, the person presses a finger on the *device*, and then the admin
+/// confirms here so the app can verify a template landed. Any of the terminal's
+/// ten finger slots can be enrolled, and each is read back on open so the admin
+/// can see what is already stored.
+class EmployeeFingerprintField extends StatefulWidget {
   const EmployeeFingerprintField({super.key, required this.nameOf});
 
   /// Read lazily — the admin usually types the name after opening the sheet.
   final String Function() nameOf;
+
+  @override
+  State<EmployeeFingerprintField> createState() =>
+      _EmployeeFingerprintFieldState();
+}
+
+class _EmployeeFingerprintFieldState extends State<EmployeeFingerprintField> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final cubit = context.read<EnrollmentCubit>();
+      cubit.loadEnrolledFingers();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,34 +54,28 @@ class EmployeeFingerprintField extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    state.isEnrolled
-                        ? Icons.fingerprint
-                        : Icons.fingerprint_outlined,
-                    size: AppDimens.iconXl,
-                    color: state.isEnrolled
-                        ? context.color.success
-                        : context.color.subtleForeground,
-                  ),
-                  const SizedBox(width: AppDimens.spaceSm),
-                  Expanded(child: _summary(context, state)),
-                  if (state.isBusy)
-                    const SizedBox(
-                      width: AppDimens.spaceLg,
-                      height: AppDimens.spaceLg,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                ],
+              _Header(state: state),
+              const SizedBox(height: 10),
+              FingerSelector(
+                selected: state.finger,
+                enrolled: state.enrolledFingers,
+                enabled: !state.isBusy && !state.isWaiting,
+                onSelected: cubit.selectFinger,
               ),
-              if (state.isWaiting) ...[
-                const SizedBox(height: 10),
-                _waitingPanel(context, cubit),
-              ] else ...[
-                const SizedBox(height: 10),
-                _actionButton(context, state, cubit),
-              ],
+              const SizedBox(height: AppDimens.spaceSm),
+              Text(
+                LangKeys.enrollFingerHint.tr(),
+                style: AppTextStyles.micro.copyWith(
+                  color: context.color.mutedForeground,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              EnrollmentActions(
+                state: state,
+                cubit: cubit,
+                nameOf: widget.nameOf,
+              ),
               if (state.error != null) ...[
                 const SizedBox(height: AppDimens.spaceSm),
                 Text(
@@ -77,96 +91,84 @@ class EmployeeFingerprintField extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _summary(BuildContext context, EnrollmentState state) {
-    final label = switch (state.stage) {
-      EnrollmentStage.preparing => LangKeys.enrollPreparing.tr(),
-      EnrollmentStage.verifying => LangKeys.enrollVerifying.tr(),
-      EnrollmentStage.enrolled => LangKeys.enrollEnrolled.tr(),
-      EnrollmentStage.waitingForFinger => LangKeys.enrollPlaceFinger.tr(),
-      EnrollmentStage.idle => LangKeys.enrollNone.tr(),
-    };
+class _Header extends StatelessWidget {
+  const _Header({required this.state});
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  final EnrollmentState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final enrolled = state.hasAnyEnrolled;
+
+    return Row(
       children: [
-        Text(
-          LangKeys.enrollTitle.tr(),
-          style: AppTextStyles.captionMedium.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+        Icon(
+          enrolled ? Icons.fingerprint : Icons.fingerprint_outlined,
+          size: AppDimens.iconXl,
+          color: enrolled
+              ? context.color.success
+              : context.color.subtleForeground,
         ),
-        Text(
-          label,
-          style: AppTextStyles.meta.copyWith(
-            color: state.isEnrolled
-                ? context.color.success
-                : context.color.mutedForeground,
-          ),
-        ),
-        // Shown as soon as the terminal has a slot, so the admin can see the
-        // mapping even if they abandon the finger capture.
-        if (state.deviceUserId != null)
-          Text(
-            '${LangKeys.enrollDeviceId.tr()}: ${state.deviceUserId}',
-            style: AppTextStyles.micro.copyWith(
-              color: context.color.mutedForeground,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _waitingPanel(BuildContext context, EnrollmentCubit cubit) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          LangKeys.enrollPlaceFingerHint.tr(),
-          style: AppTextStyles.meta.copyWith(height: 1.4),
-        ),
-        const SizedBox(height: AppDimens.spaceSm),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: cubit.confirm,
-                icon: const Icon(Icons.check, size: AppDimens.iconMd),
-                label: Text(
-                  LangKeys.enrollDone.tr(),
-                  style: AppTextStyles.caption,
+        const SizedBox(width: AppDimens.spaceSm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                LangKeys.enrollTitle.tr(),
+                style: AppTextStyles.captionMedium.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-            const SizedBox(width: AppDimens.spaceSm),
-            TextButton(
-              onPressed: cubit.cancel,
-              child: Text(
-                LangKeys.enrollCancel.tr(),
-                style: AppTextStyles.caption,
+              Text(
+                _label(),
+                style: AppTextStyles.meta.copyWith(
+                  color: state.isEnrolled
+                      ? context.color.success
+                      : context.color.mutedForeground,
+                ),
               ),
-            ),
-          ],
+              Text(
+                '${state.enrolledFingers.length} ${LangKeys.enrollFingerCount.tr()}',
+                style: AppTextStyles.micro.copyWith(
+                  color: context.color.mutedForeground,
+                ),
+              ),
+              // Shown as soon as the terminal has a slot, so the admin can see
+              // the mapping even if they abandon the finger capture.
+              if (state.deviceUserId != null)
+                Text(
+                  '${LangKeys.enrollDeviceId.tr()}: ${state.deviceUserId}',
+                  style: AppTextStyles.micro.copyWith(
+                    color: context.color.mutedForeground,
+                  ),
+                ),
+            ],
+          ),
         ),
+        if (state.isBusy || state.isLoadingFingers)
+          const SizedBox(
+            width: AppDimens.spaceLg,
+            height: AppDimens.spaceLg,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
       ],
     );
   }
 
-  Widget _actionButton(
-    BuildContext context,
-    EnrollmentState state,
-    EnrollmentCubit cubit,
-  ) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: state.isBusy ? null : () => cubit.start(name: nameOf()),
-        icon: const Icon(Icons.fingerprint, size: AppDimens.iconMd),
-        label: Text(
-          state.isEnrolled ? LangKeys.enrollRedo.tr() : LangKeys.enrollAdd.tr(),
-          style: AppTextStyles.caption,
-        ),
-      ),
-    );
-  }
+  String _label() => switch (state.stage) {
+    EnrollmentStage.preparing => LangKeys.enrollPreparing.tr(),
+    EnrollmentStage.verifying => LangKeys.enrollVerifying.tr(),
+    EnrollmentStage.waitingForFinger => LangKeys.enrollPlaceFinger.tr(),
+    EnrollmentStage.enrolled || EnrollmentStage.idle =>
+      state.isEnrolled
+          ? LangKeys.enrollEnrolled.tr()
+          // Another finger is stored, but not the one currently selected — say
+          // so rather than contradicting the count underneath.
+          : state.hasAnyEnrolled
+          ? LangKeys.enrollSelectedEmpty.tr()
+          : LangKeys.enrollNone.tr(),
+  };
 }

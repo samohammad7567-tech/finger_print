@@ -17,9 +17,10 @@ import '../widgets/punch_report_patterns.dart';
 import '../widgets/punch_report_table.dart';
 import '../widgets/punch_report_totals.dart';
 
-/// The eleven columns of the report, in their relative widths, so the loading
-/// skeleton stands in the same places the real cells will.
-const _reportColumns = <int>[4, 2, 2, 2, 2, 3, 2, 2, 2, 2, 1];
+/// The report's opening columns, in their relative widths, so the loading
+/// skeleton stands in the same places the real cells will. The scan pairs are
+/// only known once the rows arrive; two pairs is the common case.
+const _reportColumns = <int>[1, 3, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2];
 
 class PunchReportBody extends StatelessWidget {
   const PunchReportBody({super.key});
@@ -67,7 +68,11 @@ class PunchReportBody extends StatelessWidget {
       return AppEmptyState(
         icon: Icons.fingerprint,
         title: LangKeys.reportNoRows.tr(),
-        subtitle: state.issuesOnly ? LangKeys.reportNoIssues.tr() : null,
+        subtitle: state.hasEmployeeFilters
+            ? LangKeys.reportNoRowsFiltered.tr()
+            : state.issuesOnly
+            ? LangKeys.reportNoIssues.tr()
+            : null,
       );
     }
 

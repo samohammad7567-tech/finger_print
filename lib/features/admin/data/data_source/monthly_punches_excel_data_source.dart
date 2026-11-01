@@ -5,18 +5,14 @@ import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/utils/punch_pairs.dart';
+
 /// One employee's one day, already formatted. The exporter writes cells and
 /// works nothing out for itself.
 class MonthlyPunchRow {
   final String date;
   final String dayName;
-  final String checkIn;
-  final String checkOut;
-  final String breaks;
-  final String breakTime;
-  final String overtime;
-  final String worked;
-  final String status;
+  final List<PunchPair> pairs;
 
   /// Who corrected this day, if anybody did. The whole point of the file is to
   /// settle an argument, and "an admin changed this" is part of the answer.
@@ -25,33 +21,28 @@ class MonthlyPunchRow {
   const MonthlyPunchRow({
     required this.date,
     required this.dayName,
-    required this.checkIn,
-    required this.checkOut,
-    required this.breaks,
-    required this.breakTime,
-    required this.overtime,
-    required this.worked,
-    required this.status,
+    this.pairs = const [],
     this.corrected = '',
   });
 
-  List<String> get dayCells => [
+  /// The row padded to [pairCount] pairs, so every day fills every column.
+  List<String> dayCells(int pairCount) => [
     date,
     dayName,
-    checkIn,
-    checkOut,
-    breaks,
-    breakTime,
-    overtime,
-    worked,
-    status,
+    for (var i = 0; i < pairCount; i++) ...[
+      i < pairs.length ? (pairs[i].checkIn ?? '—') : '—',
+      i < pairs.length ? (pairs[i].checkOut ?? '—') : '—',
+    ],
     corrected,
   ];
 }
 
 /// One employee's month: their own tab, and their share of the combined sheet.
 class MonthlyPunchEmployee {
+  final String surname;
   final String name;
+  final String personalId;
+  final String accommodation;
   final String number;
   final String department;
   final List<MonthlyPunchRow> rows;
@@ -65,6 +56,9 @@ class MonthlyPunchEmployee {
     required this.number,
     required this.department,
     required this.rows,
+    this.surname = '',
+    this.personalId = '',
+    this.accommodation = '',
     this.totals = const [],
   });
 }
@@ -75,18 +69,26 @@ class MonthlyPunchesExcelLabels {
   final String month;
   final String generatedAt;
   final String allSheet;
+  final String serial;
+  final String surname;
   final String employee;
+  final String personalId;
+  final String accommodation;
+  final String traveler;
+  final String overnight;
   final String employeeNumber;
   final String department;
   final String date;
   final String day;
-  final String checkIn;
-  final String checkOut;
-  final String breaks;
+
+  /// The headings for pair [index], numbered from one. A function rather than
+  /// a list because the busiest day in the month is only known after it is read.
+  final String Function(int index) pairCheckIn;
+  final String Function(int index) pairCheckOut;
+
   final String breakTime;
   final String overtime;
   final String worked;
-  final String status;
   final String corrected;
   final String totals;
   final String presentDays;
@@ -97,18 +99,22 @@ class MonthlyPunchesExcelLabels {
     required this.month,
     required this.generatedAt,
     required this.allSheet,
+    required this.serial,
+    required this.surname,
     required this.employee,
+    required this.personalId,
+    required this.accommodation,
+    required this.traveler,
+    required this.overnight,
     required this.employeeNumber,
     required this.department,
     required this.date,
     required this.day,
-    required this.checkIn,
-    required this.checkOut,
-    required this.breaks,
+    required this.pairCheckIn,
+    required this.pairCheckOut,
     required this.breakTime,
     required this.overtime,
     required this.worked,
-    required this.status,
     required this.corrected,
     required this.totals,
     required this.presentDays,
@@ -116,26 +122,24 @@ class MonthlyPunchesExcelLabels {
   });
 
   /// The day columns, which both sheet shapes end with.
-  List<String> get dayHeaders => [
+  List<String> dayHeaders(int pairCount) => [
     date,
     day,
-    checkIn,
-    checkOut,
-    breaks,
-    breakTime,
-    overtime,
-    worked,
-    status,
+    for (var i = 1; i <= pairCount; i++) ...[pairCheckIn(i), pairCheckOut(i)],
     corrected,
   ];
 
   /// The combined sheet names the person on every line, since a filter on it
   /// is how somebody looks at one employee across the whole workforce.
-  List<String> get allHeaders => [
+  List<String> allHeaders(int pairCount) => [
+    serial,
+    surname,
     employee,
     employeeNumber,
     department,
-    ...dayHeaders,
+    personalId,
+    accommodation,
+    ...dayHeaders(pairCount),
   ];
 }
 
@@ -206,7 +210,14 @@ class MonthlyPunchesExcelDataSource {
     final book = Excel.createExcel();
     final taken = <String>{};
 
-    _writeAllSheet(book, employees, labels, isArabic);
+    var pairCount = 1;
+    for (final employee in employees) {
+      for (final row in employee.rows) {
+        if (row.pairs.length > pairCount) pairCount = row.pairs.length;
+      }
+    }
+
+    _writeAllSheet(book, employees, labels, isArabic, pairCount);
     taken.add(labels.allSheet);
 
     for (final employee in employees) {
@@ -216,6 +227,7 @@ class MonthlyPunchesExcelDataSource {
         labels,
         isArabic,
         _sheetName(employee, taken),
+        pairCount,
       );
     }
 
@@ -274,25 +286,32 @@ class MonthlyPunchesExcelDataSource {
     List<MonthlyPunchEmployee> employees,
     MonthlyPunchesExcelLabels labels,
     bool isArabic,
+    int pairCount,
   ) {
     final sheet = book[labels.allSheet];
     sheet.isRTL = isArabic;
 
     _title(sheet, labels);
-    _headerRow(sheet, labels.allHeaders);
+    _headerRow(sheet, labels.allHeaders(pairCount));
 
+    var serial = 0;
     for (final employee in employees) {
       for (final row in employee.rows) {
+        serial++;
         sheet.appendRow([
-          TextCellValue(employee.name),
-          TextCellValue(employee.number),
-          TextCellValue(employee.department),
-          ...row.dayCells.map(TextCellValue.new),
+          TextCellValue('$serial'),
+          TextCellValue(_orDash(employee.surname)),
+          TextCellValue(_orDash(employee.name)),
+          TextCellValue(_orDash(employee.number)),
+          TextCellValue(_orDash(employee.department)),
+          TextCellValue(_orDash(employee.personalId)),
+          TextCellValue(_orDash(employee.accommodation)),
+          ...row.dayCells(pairCount).map(TextCellValue.new),
         ]);
       }
     }
 
-    _widths(sheet, [22, 11, 16, ...(_dayWidths)]);
+    _widths(sheet, [6, 18, 22, 11, 16, 18, 18, ..._dayWidths(pairCount)]);
   }
 
   void _writeEmployeeSheet(
@@ -301,6 +320,7 @@ class MonthlyPunchesExcelDataSource {
     MonthlyPunchesExcelLabels labels,
     bool isArabic,
     String sheetName,
+    int pairCount,
   ) {
     final sheet = book[sheetName];
     sheet.isRTL = isArabic;
@@ -309,16 +329,21 @@ class MonthlyPunchesExcelDataSource {
     // this tab is already theirs.
     _bold(sheet, [TextCellValue(employee.name)]);
     sheet.appendRow([
+      TextCellValue('${labels.surname}: ${_orDash(employee.surname)}'),
+      TextCellValue('${labels.personalId}: ${_orDash(employee.personalId)}'),
+      TextCellValue('${labels.accommodation}: ${_orDash(employee.accommodation)}'),
+    ]);
+    sheet.appendRow([
       TextCellValue('${labels.employeeNumber}: ${employee.number}'),
       TextCellValue('${labels.department}: ${employee.department}'),
     ]);
     sheet.appendRow([TextCellValue(labels.month)]);
     sheet.appendRow([]);
 
-    _headerRow(sheet, labels.dayHeaders);
+    _headerRow(sheet, labels.dayHeaders(pairCount));
 
     for (final row in employee.rows) {
-      sheet.appendRow(row.dayCells.map(TextCellValue.new).toList());
+      sheet.appendRow(row.dayCells(pairCount).map(TextCellValue.new).toList());
     }
 
     if (employee.totals.isNotEmpty) {
@@ -332,12 +357,21 @@ class MonthlyPunchesExcelDataSource {
       }
     }
 
-    _widths(sheet, _dayWidths);
+    _widths(sheet, _dayWidths(pairCount));
   }
 
   // ------------------------------------------------------------- the pieces
 
-  static const _dayWidths = <double>[12, 11, 10, 10, 26, 12, 11, 11, 14, 18];
+  /// Date, day, a pair of scan columns for every pair in the month, then the
+  /// correction trail.
+  static List<double> _dayWidths(int pairCount) => [
+    12,
+    11,
+    for (var i = 0; i < pairCount; i++) ...const [10, 10],
+    18,
+  ];
+
+  static String _orDash(String value) => value.trim().isEmpty ? '—' : value;
 
   void _title(Sheet sheet, MonthlyPunchesExcelLabels labels) {
     _bold(sheet, [TextCellValue(labels.title)]);

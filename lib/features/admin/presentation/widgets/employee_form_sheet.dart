@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,24 +24,38 @@ void showEmployeeFormSheet(BuildContext context, {EmployeeModel? employee}) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => MultiBlocProvider(
-      providers: [
-        BlocProvider.value(value: context.read<EmployeeManagementCubit>()),
-        BlocProvider(
-          create: (_) => getIt<EnrollmentCubit>()
-            ..seed(
-              deviceUserId: employee?.deviceUserId,
-              name: employee?.fullName ?? '',
-            ),
-        ),
-        // Feeds the department picker, and reloads itself when a department is
-        // added from inside the form.
-        BlocProvider(create: (_) => getIt<DepartmentsCubit>()..load()),
-        // Same again for the shift picker: the hours this employee is judged
-        // by, and the list of shifts to choose from.
-        BlocProvider(create: (_) => getIt<ShiftsCubit>()..load()),
-      ],
-      child: _EmployeeFormSheet(employee: employee),
+    barrierColor: context.effects.scrim,
+    useSafeArea: true,
+    // Keeps the card off the screen edges on tablets and desktop instead of
+    // stretching a form across the whole width.
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => Padding(
+      // The vertical margin is what makes it read as a floating dialog rather
+      // than a panel welded to the bottom of the screen.
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimens.spaceLg,
+        vertical: AppDimens.spaceXl,
+      ),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<EmployeeManagementCubit>()),
+          BlocProvider(
+            create: (_) => getIt<EnrollmentCubit>()
+              ..seed(
+                deviceUserId: employee?.deviceUserId,
+                name: employee?.fullName ?? '',
+                enrolledFingers: employee?.enrolledFingers ?? const {},
+              ),
+          ),
+          // Feeds the department picker, and reloads itself when a department is
+          // added from inside the form.
+          BlocProvider(create: (_) => getIt<DepartmentsCubit>()..load()),
+          // Same again for the shift picker: the hours this employee is judged
+          // by, and the list of shifts to choose from.
+          BlocProvider(create: (_) => getIt<ShiftsCubit>()..load()),
+        ],
+        child: _EmployeeFormSheet(employee: employee),
+      ),
     ),
   );
 }
@@ -54,7 +70,9 @@ class _EmployeeFormSheet extends StatefulWidget {
 
 class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   late final TextEditingController _idCtrl;
+  late final TextEditingController _surnameCtrl;
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _personalIdCtrl;
   late final TextEditingController _posCtrl;
   late final TextEditingController _phoneCtrl;
 
@@ -88,7 +106,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     // renumber silently took back anyway. Shown, never edited.
     if (e == null) _prefillEmployeeNumber();
     _idCtrl = TextEditingController(text: e?.employeeId ?? '');
+    _surnameCtrl = TextEditingController(text: e?.surname ?? '');
     _nameCtrl = TextEditingController(text: e?.fullName ?? '');
+    _personalIdCtrl = TextEditingController(text: e?.personalId ?? '');
     _department = e?.department.trim() ?? '';
     _shiftId = e?.shiftId ?? '';
     _posCtrl = TextEditingController(text: e?.position ?? '');
@@ -104,7 +124,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     // finger until its own timeout.
     _enrollment.cancel();
     _idCtrl.dispose();
+    _surnameCtrl.dispose();
     _nameCtrl.dispose();
+    _personalIdCtrl.dispose();
     _posCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
@@ -167,7 +189,9 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final data = {
       // Deliberately absent: an omitted key means "leave it alone" on edit, and
       // on create it tells the data source to take the next number itself.
+      'surname': _surnameCtrl.text,
       'full_name': _nameCtrl.text,
+      'personal_id': _personalIdCtrl.text,
       'department': _department,
       'position': _posCtrl.text,
       'phone': _phoneCtrl.text,
@@ -184,14 +208,18 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     final enrollment = context.read<EnrollmentCubit>();
     final deviceUserId = enrollment.state.deviceUserId;
     if (deviceUserId != null) data['device_user_id'] = deviceUserId;
+    // Every finger the terminal is known to hold for this person, so the list
+    // can show more than a bare "enrolled" badge without asking the device.
+    data['enrolled_fingers'] = enrollment.state.enrolledFingers;
 
     await context.read<EmployeeManagementCubit>().saveEmployee(
       data,
       editId: widget.employee?.id,
     );
 
-    // Keeps the name on the device in step with the name in the app.
-    await enrollment.pushName(_nameCtrl.text);
+    // Keeps the name on the device in step with the name in the app. It is a
+    // network round-trip to the terminal, so it must not hold the sheet open.
+    unawaited(enrollment.pushName(_nameCtrl.text));
 
     if (mounted) Navigator.pop(context);
   }
@@ -200,13 +228,17 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        // Leaves breathing room above and below even on a short screen; the
+        // outer padding already accounts for the rest.
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppDimens.radiusXl),
-        ),
+        borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+        border: Border.all(color: context.color.border),
+        // Plane 4 in the design system — the elevation reserved for dialogs.
+        boxShadow: context.effects.shadowXl,
       ),
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -240,10 +272,23 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
             _label(LangKeys.adminEmployeeId.tr()),
             _employeeNumber(context),
             const SizedBox(height: 10),
+            _label(LangKeys.adminSurname.tr()),
+            AppTextField(
+              controller: _surnameCtrl,
+              hint: LangKeys.adminSurname.tr(),
+            ),
+            const SizedBox(height: 10),
             _label(LangKeys.adminFullName.tr()),
             AppTextField(
               controller: _nameCtrl,
               hint: LangKeys.adminFullName.tr(),
+            ),
+            const SizedBox(height: 10),
+            _label(LangKeys.adminPersonalId.tr()),
+            AppTextField(
+              controller: _personalIdCtrl,
+              hint: LangKeys.adminPersonalId.tr(),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 10),
             _label(LangKeys.adminDepartment.tr()),

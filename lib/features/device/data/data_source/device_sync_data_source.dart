@@ -132,6 +132,53 @@ class DeviceSyncDataSource {
     });
   }
 
+  /// Records which terminal finger slots each mapped employee actually holds.
+  ///
+  /// [fingersByDeviceUserId] comes straight from the device, so this is the one
+  /// place the app's stored count catches up with an enrolment done on the
+  /// terminal keypad. Users the scan did not reach are absent from the map and
+  /// are left untouched.
+  Future<int> saveEnrolledFingers(
+    Map<String, Set<int>> fingersByDeviceUserId,
+  ) async {
+    return _guard(() async {
+      if (fingersByDeviceUserId.isEmpty) return 0;
+
+      final now = DateTime.now().toIso8601String();
+      var updated = 0;
+
+      await _db.transaction((txn) async {
+        for (final entry in fingersByDeviceUserId.entries) {
+          final deviceUserId = entry.key.trim();
+          if (deviceUserId.isEmpty) continue;
+
+          final encoded = _encodeFingers(entry.value);
+          final rows = await txn.query(
+            _employees,
+            columns: ['id', 'enrolled_fingers'],
+            where: 'device_user_id = ?',
+            whereArgs: [deviceUserId],
+            limit: 1,
+          );
+          if (rows.isEmpty) continue;
+
+          final current = rows.first['enrolled_fingers'] as String?;
+          if (current == encoded) continue;
+
+          await txn.update(
+            _employees,
+            {'enrolled_fingers': encoded, 'updated_at': now},
+            where: 'id = ?',
+            whereArgs: [rows.first['id']],
+          );
+          updated++;
+        }
+      });
+
+      return updated;
+    });
+  }
+
   /// Everyone an admin has deleted, newest first.
   ///
   /// The tombstone is what stops a deletion undoing itself at the next sync, so
@@ -479,6 +526,52 @@ class DeviceSyncDataSource {
     });
   }
 
+  /// Every employee's scans between [startDate] and [endDate], in order and
+  /// already debounced, keyed by `employeeId|date`.
+  ///
+  /// The report pairs scans by their order rather than by the clock, so it
+  /// needs the raw log: the folded attendance row only keeps a summary of the
+  /// day and has already decided what each scan meant. The log is the one place
+  /// that still knows the sequence.
+  Future<Map<String, List<String>>> punchTimesByDay(
+    String startDate,
+    String endDate, {
+    int debounceSeconds = 60,
+  }) async {
+    return _guard(() async {
+      final rows = await _db.rawQuery(
+        '''
+        SELECT employee_id, punch_time
+        FROM $_punches
+        WHERE employee_id IS NOT NULL
+          AND substr(punch_time, 1, 10) BETWEEN ? AND ?
+        ORDER BY punch_time ASC
+      ''',
+        [startDate, endDate],
+      );
+
+      final grouped = <String, List<DateTime>>{};
+      for (final row in rows) {
+        final employeeId = row['employee_id'] as String? ?? '';
+        final at = DateTime.tryParse(row['punch_time'] as String? ?? '');
+        if (employeeId.isEmpty || at == null) continue;
+
+        grouped
+            .putIfAbsent('$employeeId|${_dateOf(at)}', () => <DateTime>[])
+            .add(at);
+      }
+
+      final window = Duration(seconds: debounceSeconds);
+      return {
+        for (final entry in grouped.entries)
+          entry.key: PunchTypeResolver.debounce(
+            entry.value,
+            window,
+          ).map(PunchTypeResolver.hhmm).toList(),
+      };
+    });
+  }
+
   /// Device user ids seen in the punch log with no employee mapped to them,
   /// newest first — the worklist for the mapping screen.
   Future<List<({String deviceUserId, int punchCount, DateTime lastSeen})>>
@@ -740,6 +833,15 @@ class DeviceSyncDataSource {
     });
   }
 
+  /// Terminal user ids that already belong to an employee.
+  ///
+  /// Used to keep a fingerprint scan to people the result can actually be
+  /// stored against, instead of spending ten commands on terminal admins and
+  /// on users still waiting for a match review.
+  Future<Set<String>> mappedDeviceUserIds() async {
+    return _guard(() async => (await _deviceUserMapping()).keys.toSet());
+  }
+
   /// Reads the shared staff-number counter.
   ///
   /// The same counter the manual form draws from, so a number issued by one
@@ -916,6 +1018,14 @@ class DeviceSyncDataSource {
           (rows.first['has_travel_permission'] as int? ?? 0) != 0,
       schedule: ShiftModel.scheduleFromRow(rows.first, _schedule),
     );
+  }
+
+  /// The same shape the employee form writes: sorted slot indices, comma
+  /// separated, or null when nothing is enrolled.
+  static String? _encodeFingers(Set<int> fingers) {
+    final slots = fingers.where((f) => f >= 0 && f < 10).toList()..sort();
+    if (slots.isEmpty) return null;
+    return slots.join(',');
   }
 
   static String _dateOf(DateTime time) =>

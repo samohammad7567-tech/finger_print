@@ -32,7 +32,11 @@ class AppDatabase {
   /// 10 — added holidays and shifts.rest_days, so the app knows which dates
   ///     nobody was expected to work rather than treating every date on the
   ///     calendar as a working day.
-  static const _schemaVersion = 10;
+  /// 11 — added employees.surname and employees.personal_id, so reports can
+  ///     identify a person the way payroll does rather than by full name alone.
+  /// 12 — added employees.enrolled_fingers, so the app can show which fingers a
+  ///     person has on the terminal without opening the device every time.
+  static const _schemaVersion = 12;
 
   Database? _db;
 
@@ -307,6 +311,24 @@ class AppDatabase {
         "ALTER TABLE shifts ADD COLUMN rest_days TEXT NOT NULL DEFAULT ''",
       );
     }
+
+    if (from < 11) {
+      // Optional identity fields. Existing employees keep null until an admin
+      // fills them in, which is the truth: the app never held them before.
+      await db.execute('ALTER TABLE employees ADD COLUMN surname TEXT');
+      await db.execute('ALTER TABLE employees ADD COLUMN personal_id TEXT');
+    }
+
+    if (from < 12) {
+      // Finger slots this person has enrolled, as comma-separated indices. The
+      // templates themselves stay on the terminal; this is the app's note of
+      // how many were there when it last looked, so the list can show more than
+      // a bare "enrolled" badge. Existing employees keep null until the form is
+      // opened again and the device is read.
+      await db.execute(
+        'ALTER TABLE employees ADD COLUMN enrolled_fingers TEXT',
+      );
+    }
   }
 
   /// Dates nobody in the company was expected to work.
@@ -511,7 +533,9 @@ class AppDatabase {
       CREATE TABLE employees (
         id                     TEXT PRIMARY KEY,
         employee_number        TEXT,
+        surname                TEXT,
         full_name              TEXT NOT NULL,
+        personal_id            TEXT,
         department             TEXT NOT NULL DEFAULT '',
         photo_url              TEXT,
         has_housing            INTEGER NOT NULL DEFAULT 0,
@@ -520,6 +544,10 @@ class AppDatabase {
         position               TEXT,
         qr_code                TEXT,
         device_user_id         TEXT,
+        -- Finger slots the app last saw enrolled on the terminal, as a
+        -- comma-separated list of indices (0..9). The templates themselves
+        -- live on the device and are never copied here.
+        enrolled_fingers       TEXT,
         -- The working day this person is judged by. Null means the company
         -- default from the work-hours settings, which is what a site running
         -- one shift never has to change.

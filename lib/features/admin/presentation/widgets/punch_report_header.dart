@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../data/data_source/monthly_punches_excel_data_source.dart';
 import '../../data/data_source/punch_report_pdf_data_source.dart';
 import '../cubit/punch_report_cubit.dart';
+import '../refactor/punch_pair_header.dart';
 
 /// The report's title, the hours it is measured against, and its four
 /// actions: pull the terminal, export the range as a PDF, export the whole
@@ -125,10 +126,9 @@ class PunchReportHeader extends StatelessWidget {
       onPressed: state.visibleRows.isEmpty || busy
           ? null
           : () => context.read<PunchReportCubit>().exportPdf(
-              labels: _pdfLabels(context),
+              labels: _pdfLabels(),
               locale: context.locale.languageCode,
               isArabic: context.locale.languageCode == 'ar',
-              statusLabel: _statusLabel,
             ),
       icon: busy
           ? const _Spinner()
@@ -155,7 +155,6 @@ class PunchReportHeader extends StatelessWidget {
               labels: _excelLabels(context),
               locale: context.locale.languageCode,
               isArabic: context.locale.languageCode == 'ar',
-              statusLabel: _statusLabel,
               saveLabel: LangKeys.adminSave.tr(),
             ),
       icon: busy
@@ -179,18 +178,22 @@ class PunchReportHeader extends StatelessWidget {
         args: [DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())],
       ),
       allSheet: LangKeys.reportAllSheet.tr(),
+      serial: LangKeys.reportSerialNumber.tr(),
+      surname: LangKeys.adminSurname.tr(),
       employee: LangKeys.adminFullName.tr(),
+      personalId: LangKeys.adminPersonalId.tr(),
+      accommodation: LangKeys.reportAccommodation.tr(),
+      traveler: LangKeys.reportTraveler.tr(),
+      overnight: LangKeys.reportOvernight.tr(),
       employeeNumber: LangKeys.reportStaffNumber.tr(),
       department: LangKeys.adminDepartment.tr(),
       date: LangKeys.date.tr(),
       day: LangKeys.reportDay.tr(),
-      checkIn: LangKeys.reportCheckIn.tr(),
-      checkOut: LangKeys.reportCheckOut.tr(),
-      breaks: LangKeys.reportBreaks.tr(),
+      pairCheckIn: (index) => punchPairHeader(index, checkIn: true),
+      pairCheckOut: (index) => punchPairHeader(index, checkIn: false),
       breakTime: LangKeys.reportBreakTime.tr(),
       overtime: LangKeys.reportOvertime.tr(),
       worked: LangKeys.reportWorked.tr(),
-      status: LangKeys.status.tr(),
       corrected: LangKeys.reportCorrectedBy.tr(),
       totals: LangKeys.reportTotals.tr(),
       presentDays: LangKeys.presentDays.tr(),
@@ -198,7 +201,7 @@ class PunchReportHeader extends StatelessWidget {
     );
   }
 
-  PunchReportPdfLabels _pdfLabels(BuildContext context) {
+  PunchReportPdfLabels _pdfLabels() {
     final date = DateFormat('yyyy-MM-dd');
     return PunchReportPdfLabels(
       title: LangKeys.reportPunchTitle.tr(),
@@ -206,28 +209,23 @@ class PunchReportHeader extends StatelessWidget {
       generatedAt: LangKeys.reportGeneratedAt.tr(
         args: [DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())],
       ),
-      name: LangKeys.adminEmployees.tr(),
+      serial: LangKeys.reportSerialNumber.tr(),
+      surname: LangKeys.adminSurname.tr(),
+      name: LangKeys.adminFullName.tr(),
+      personalId: LangKeys.adminPersonalId.tr(),
+      accommodation: LangKeys.reportAccommodation.tr(),
+      traveler: LangKeys.reportTraveler.tr(),
+      overnight: LangKeys.reportOvernight.tr(),
       date: LangKeys.date.tr(),
       day: LangKeys.reportDay.tr(),
-      checkIn: LangKeys.reportCheckIn.tr(),
-      checkOut: LangKeys.reportCheckOut.tr(),
+      pairCheckIn: (index) => punchPairHeader(index, checkIn: true),
+      pairCheckOut: (index) => punchPairHeader(index, checkIn: false),
       breakTime: LangKeys.reportBreakTime.tr(),
       overtime: LangKeys.reportOvertime.tr(),
       workTime: LangKeys.reportWorked.tr(),
-      status: LangKeys.status.tr(),
       totals: LangKeys.reportTotals.tr(),
     );
   }
-
-  /// A stored status as a word on the page. The same mapping the status chip
-  /// uses, so the file and the screen never say different things.
-  /// The day's labels, translated and joined for a single export cell.
-  ///
-  /// A day carrying more than one — late in and early out — reads as both,
-  /// exactly as the table shows it, so a printed report and the screen never
-  /// disagree about what happened.
-  static String _statusLabel(List<String> labelKeys) =>
-      labelKeys.map((key) => key.tr()).join(' · ');
 
   /// The clipboard rather than a file: pasting straight into a spreadsheet is
   /// what an admin actually wants to do with the CSV.

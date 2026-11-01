@@ -180,7 +180,9 @@ void main() {
     // ones the reader recognises.
     const labels = EmployeeImportLabels(
       sheetName: 'موظف',
+      surname: 'اللقب',
       fullName: 'الاسم الكامل',
+      personalId: 'الرقم الذاتي',
       employeeNumber: 'رقم الموظف',
       department: 'القسم',
       position: 'المسمى الوظيفي',

@@ -45,6 +45,44 @@ void main() {
   ZkPunchModel punch(String userId, String iso) =>
       ZkPunchModel(deviceUserId: userId, timestamp: DateTime.parse(iso));
 
+  test('a fingerprint scan replaces the stored slots', () async {
+    final sara = await addEmployee(deviceUserId: '7');
+    final omar = await addEmployee(name: 'Omar', deviceUserId: '8');
+
+    await attendance.updateEmployee(sara, {
+      'enrolled_fingers': <int>{0},
+    });
+    await attendance.updateEmployee(omar, {
+      'enrolled_fingers': <int>{1, 4},
+    });
+
+    final changed = await sync.saveEnrolledFingers({
+      '7': <int>{0, 2, 5},
+      '8': <int>{},
+    });
+
+    expect(changed, 2);
+    expect((await attendance.getEmployeeById(sara))!.enrolledFingers, {
+      0,
+      2,
+      5,
+    });
+    expect((await attendance.getEmployeeById(omar))!.enrolledFingers, isEmpty);
+
+    // Same answer as last time changes nothing, so a repeated sync is quiet.
+    expect(await sync.saveEnrolledFingers({'7': {0, 2, 5}}), 0);
+  });
+
+  test('a fingerprint scan leaves employees it did not reach alone', () async {
+    final sara = await addEmployee(deviceUserId: '7');
+
+    await sync.saveEnrolledFingers({
+      '404': <int>{0, 1, 2},
+    });
+
+    expect((await attendance.getEmployeeById(sara))!.enrolledFingers, isEmpty);
+  });
+
   test('first punch becomes check-in, last becomes check-out', () async {
     final id = await addEmployee();
 
@@ -62,6 +100,23 @@ void main() {
     expect(record.status, 'present');
     expect(record.isEarlyLeave, isFalse);
   });
+
+  test(
+    'raw scans come back in order, debounced, per employee and day',
+    () async {
+      final id = await addEmployee();
+
+      await sync.ingest([
+        punch('7', '2026-08-10 08:00:00'),
+        punch('7', '2026-08-10 08:00:04'),
+        punch('7', '2026-08-10 12:00:00'),
+        punch('7', '2026-08-10 17:00:00'),
+      ]);
+
+      final byDay = await sync.punchTimesByDay('2026-08-10', '2026-08-10');
+      expect(byDay['$id|2026-08-10'], ['08:00', '12:00', '17:00']);
+    },
+  );
 
   test('a single punch is a check-in with no check-out', () async {
     final id = await addEmployee();

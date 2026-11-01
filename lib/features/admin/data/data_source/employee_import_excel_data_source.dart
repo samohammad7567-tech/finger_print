@@ -15,6 +15,8 @@ import '../../../attendance/data/models/employee_import_models.dart';
 class EmployeeImportLabels {
   final String sheetName;
   final String fullName;
+  final String surname;
+  final String personalId;
   final String employeeNumber;
   final String department;
   final String position;
@@ -32,6 +34,8 @@ class EmployeeImportLabels {
   const EmployeeImportLabels({
     required this.sheetName,
     required this.fullName,
+    required this.surname,
+    required this.personalId,
     required this.employeeNumber,
     required this.department,
     required this.position,
@@ -49,7 +53,9 @@ class EmployeeImportLabels {
 
   List<String> get headers => [
     employeeNumber,
+    surname,
     fullName,
+    personalId,
     department,
     position,
     phone,
@@ -75,6 +81,8 @@ class EmployeeImportExcelDataSource {
   // ------------------------------------------------------------- the columns
 
   static const _fullName = 'full_name';
+  static const _surname = 'surname';
+  static const _personalId = 'personal_id';
   static const _employeeNumber = 'employee_number';
   static const _department = 'department';
   static const _position = 'position';
@@ -114,6 +122,34 @@ class EmployeeImportExcelDataSource {
       'اسم الموظف',
       'الاسم',
       'الموظف',
+    ],
+    _surname: [
+      'surname',
+      'family name',
+      'last name',
+      'اسم العائلة',
+      'اسم عائلة',
+      'العائلة',
+      'اللقب',
+    ],
+    _personalId: [
+      'personal id',
+      'personal id number',
+      'personal number',
+      'national id',
+      'national id number',
+      'national number',
+      'id number',
+      'iqama',
+      'iqama number',
+      'رقم الهوية',
+      'الرقم الذاتي',
+      'الرقم الذاتى',
+      'الهوية الوطنية',
+      'رقم الهوية الوطنية',
+      'الرقم الشخصي',
+      'رقم الإقامة',
+      'الإقامة',
     ],
     _employeeNumber: [
       'employee number',
@@ -363,7 +399,9 @@ class EmployeeImportExcelDataSource {
 
     return EmployeeImportRow(
       line: line,
+      surname: _orNull(values[_surname]),
       fullName: values[_fullName] ?? '',
+      personalId: _orNull(values[_personalId]),
       employeeNumber: _orNull(values[_employeeNumber]),
       department: values[_department] ?? '',
       position: _orNull(values[_position]),
@@ -432,7 +470,9 @@ class EmployeeImportExcelDataSource {
     // sequence. The device id is blank throughout — only enrolment sets that.
     _example(sheet, [
       '',
+      '',
       labels.sampleName,
+      '',
       labels.sampleDepartment,
       labels.samplePosition,
       '0500000000',
@@ -443,7 +483,9 @@ class EmployeeImportExcelDataSource {
     ]);
     _example(sheet, [
       'EMP014',
+      '',
       labels.sampleName,
+      '',
       labels.sampleDepartment,
       '',
       '',
@@ -453,7 +495,7 @@ class EmployeeImportExcelDataSource {
       labels.yes,
     ]);
 
-    const widths = <double>[14, 26, 18, 18, 16, 14, 10, 10, 10];
+    const widths = <double>[14, 18, 26, 18, 18, 18, 16, 14, 10, 10, 10];
     for (var column = 0; column < widths.length; column++) {
       sheet.setColumnWidth(column, widths[column]);
     }

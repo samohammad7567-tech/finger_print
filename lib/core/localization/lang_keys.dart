@@ -151,7 +151,9 @@ class LangKeys {
   static const adminAddEmployee = 'admin_add_employee';
   static const adminEditEmployee = 'admin_edit_employee';
   static const adminEmployeeId = 'admin_employee_id';
+  static const adminSurname = 'admin_surname';
   static const adminFullName = 'admin_full_name';
+  static const adminPersonalId = 'admin_personal_id';
   static const adminDepartment = 'admin_department';
   static const adminPosition = 'admin_position';
   static const adminPhone = 'admin_phone';
@@ -217,6 +219,7 @@ class LangKeys {
   static const errorDeviceNotConfigured = 'error_device_not_configured';
   static const errorDeviceUnreachable = 'error_device_unreachable';
   static const errorDeviceRead = 'error_device_read';
+  static const errorDeviceTimeout = 'error_device_timeout';
   static const errorDuplicateDeviceUser = 'error_duplicate_device_user';
 
   static const deviceTitle = 'device_title';
@@ -293,8 +296,18 @@ class LangKeys {
 
   // ------------------------------------------------------- punch report
   static const reportPunchTitle = 'report_punch_title';
+  static const reportSerialNumber = 'report_serial_number';
+  static const reportAccommodation = 'report_accommodation';
+  static const reportTraveler = 'report_traveler';
+  static const reportOvernight = 'report_overnight';
   static const reportCheckIn = 'report_check_in';
   static const reportCheckOut = 'report_check_out';
+  static const reportFirstCheckIn = 'report_first_check_in';
+  static const reportFirstCheckOut = 'report_first_check_out';
+  static const reportSecondCheckIn = 'report_second_check_in';
+  static const reportSecondCheckOut = 'report_second_check_out';
+  static const reportCheckInNumbered = 'report_check_in_numbered';
+  static const reportCheckOutNumbered = 'report_check_out_numbered';
   static const reportBreakOut = 'report_break_out';
   static const reportBreakIn = 'report_break_in';
   static const reportBreaks = 'report_breaks';
@@ -305,7 +318,14 @@ class LangKeys {
   static const reportOvertime = 'report_overtime';
   static const reportRows = 'report_rows';
   static const reportNoRows = 'report_no_rows';
+  static const reportNoRowsFiltered = 'report_no_rows_filtered';
   static const reportAllEmployees = 'report_all_employees';
+  static const reportAllDepartments = 'report_all_departments';
+  static const reportAllPositions = 'report_all_positions';
+  static const reportAllHousing = 'report_all_housing';
+  static const reportHousingOnly = 'report_housing_only';
+  static const reportNoHousing = 'report_no_housing';
+  static const reportClearFilters = 'report_clear_filters';
   static const reportThisMonth = 'report_this_month';
   static const reportLastMonth = 'report_last_month';
   static const reportToday = 'report_today';
@@ -444,6 +464,7 @@ class LangKeys {
 
   static const enrollTitle = 'enroll_title';
   static const enrollNone = 'enroll_none';
+  static const enrollSelectedEmpty = 'enroll_selected_empty';
   static const enrollAdd = 'enroll_add';
   static const enrollPreparing = 'enroll_preparing';
   static const enrollPlaceFinger = 'enroll_place_finger';
@@ -454,6 +475,19 @@ class LangKeys {
   static const enrollRedo = 'enroll_redo';
   static const enrollCancel = 'enroll_cancel';
   static const enrollDeviceId = 'enroll_device_id';
+  static const enrollFingerHint = 'enroll_finger_hint';
+  static const enrollFingerCount = 'enroll_finger_count';
+
+  static const fingerRightThumb = 'finger_right_thumb';
+  static const fingerRightIndex = 'finger_right_index';
+  static const fingerRightMiddle = 'finger_right_middle';
+  static const fingerRightRing = 'finger_right_ring';
+  static const fingerRightLittle = 'finger_right_little';
+  static const fingerLeftThumb = 'finger_left_thumb';
+  static const fingerLeftIndex = 'finger_left_index';
+  static const fingerLeftMiddle = 'finger_left_middle';
+  static const fingerLeftRing = 'finger_left_ring';
+  static const fingerLeftLittle = 'finger_left_little';
 
   // ---------------------------------------------------------- working hours
   static const scheduleTitle = 'schedule_title';

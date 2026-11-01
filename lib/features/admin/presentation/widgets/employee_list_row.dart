@@ -78,7 +78,9 @@ class _Identity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final enrolled = (employee.deviceUserId ?? '').isNotEmpty;
+    final fingerCount = employee.enrolledFingers.length;
+    final enrolled =
+        fingerCount > 0 || (employee.deviceUserId ?? '').isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,10 +109,12 @@ class _Identity extends StatelessWidget {
                 tip: LangKeys.adminHasTravel.tr(),
               ),
             if (enrolled)
-              _Badge(
-                icon: Icons.fingerprint,
+              _FingerBadge(
+                count: fingerCount,
                 tone: context.color.primary,
-                tip: LangKeys.enrollEnrolled.tr(),
+                tip: fingerCount > 1
+                    ? '$fingerCount ${LangKeys.enrollFingerCount.tr()}'
+                    : LangKeys.enrollEnrolled.tr(),
               ),
           ],
         ),
@@ -146,6 +150,49 @@ class _Badge extends StatelessWidget {
       child: Tooltip(
         message: tip,
         child: Icon(icon, size: AppDimens.iconXs, color: tone),
+      ),
+    );
+  }
+}
+
+/// The fingerprint badge, carrying how many fingers are enrolled.
+///
+/// A single finger is the ordinary case and stays a bare glyph; more than one
+/// is the fact worth surfacing, so the count is written next to it rather than
+/// left to a tooltip.
+class _FingerBadge extends StatelessWidget {
+  const _FingerBadge({
+    required this.count,
+    required this.tone,
+    required this.tip,
+  });
+
+  final int count;
+  final Color tone;
+  final String tip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: AppDimens.spaceXs),
+      child: Tooltip(
+        message: tip,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.fingerprint, size: AppDimens.iconXs, color: tone),
+            if (count > 1) ...[
+              const SizedBox(width: 2),
+              Text(
+                '$count',
+                style: AppTextStyles.micro.copyWith(
+                  color: tone,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

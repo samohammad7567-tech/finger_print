@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../attendance/data/models/employee_import_models.dart';
 import '../../../attendance/data/models/employee_model.dart';
@@ -605,8 +607,9 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
         );
       }
 
-      // Refresh list after save
-      await load();
+      // Refresh in the background: the row is already written, so the form must
+      // not wait on a list read (which also asks the device) to close.
+      unawaited(load());
     } catch (e) {
       emit(
         state.copyWith(isSaving: false, errorKey: LangKeys.failedSaveEmployee),

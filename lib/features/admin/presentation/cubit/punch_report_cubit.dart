@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/localization/lang_keys.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/attendance_utils.dart';
+import '../../../../core/utils/punch_pairs.dart';
 import '../../../../core/utils/work_schedule.dart';
 import '../../../attendance/data/models/attendance_day_totals.dart';
 import '../../../attendance/data/models/attendance_record_model.dart';
@@ -26,6 +27,42 @@ import '../refactor/employee_pattern.dart';
 /// [custom] a range picked by hand; the rest are fixed spans.
 enum PunchRangePreset { today, last7Days, thisMonth, lastMonth, day, custom }
 
+/// Which side of the housing flag the report should keep.
+enum PunchHousingFilter { all, housed, notHoused }
+
+/// The scans the report should pair for one day.
+///
+/// Raw scans are the true sequence, so they win whenever they are available.
+/// A corrected day is the exception: the admin's times are the record now, and
+/// the report must not keep reading the device log over them. Days folded
+/// before the log was queried — or typed by hand — are rebuilt from the stored
+/// fields instead, so no report row is left blank for want of raw punches.
+List<String> _scanTimes(
+  AttendanceRecordModel record,
+  List<String> raw,
+  List<AttendanceBreak> breaks,
+) {
+  if (!record.isCorrected && raw.isNotEmpty) return raw;
+
+  final scans = <String>[];
+  void add(String? time) {
+    final value = time?.trim() ?? '';
+    if (value.isNotEmpty && !scans.contains(value)) scans.add(value);
+  }
+
+  add(record.checkInTime);
+  for (final b in breaks) {
+    add(b.out);
+    add(b.backIn);
+  }
+  add(record.overtimeInTime);
+  add(record.overtimeOutTime);
+  add(record.checkOutTime);
+
+  scans.sort((a, b) => timeToMinutes(a).compareTo(timeToMinutes(b)));
+  return scans;
+}
+
 /// One row of the punch report: a person, a day, and what their scans add up
 /// to once the admin's working hours are applied to them.
 ///
@@ -35,11 +72,15 @@ class PunchReportRow {
   final EmployeeModel employee;
   final AttendanceRecordModel record;
 
+  /// The raw scans behind this day, in order, when the caller has them.
+  final List<String> punches;
+
   final AttendanceDayTotals totals;
 
   PunchReportRow({
     required this.employee,
     required this.record,
+    this.punches = const [],
     WorkSchedule schedule = kDefaultSchedule,
     WorkingDayKind dayKind = WorkingDayKind.working,
   }) : totals = AttendanceDayTotals.forEmployee(
@@ -48,6 +89,15 @@ class PunchReportRow {
          schedule: schedule,
          dayKind: dayKind,
        );
+
+  /// The day's scans, paired by their order: first in/out, second in/out, and
+  /// so on. An odd last scan is a check-out on its own.
+  ///
+  /// Computed once: the table reads it for every pair column, and the exports
+  /// read it again for every row.
+  late final List<PunchPair> pairs = PunchPairs.fromOrdered(
+    _scanTimes(record, punches, breaks),
+  );
 
   /// The hours this day is judged against.
   WorkSchedule get schedule => totals.schedule;
@@ -100,6 +150,28 @@ class PunchReportRow {
 
   /// When this person's day was scheduled to end, on this row's date.
   int get scheduledEndMinutes => totals.endOfDayMinutes;
+
+  /// The family name payroll knows them by, empty when nobody filled it in.
+  String get surname => employee.surname?.trim() ?? '';
+
+  /// Their personal / national id number, empty when nobody filled it in.
+  String get personalId => employee.personalId?.trim() ?? '';
+
+  /// Where they stay between shifts, as words. A person can carry both flags,
+  /// so both are shown rather than one silently winning.
+  ///
+  /// [traveler] and [overnight] arrive already translated: the words belong to
+  /// whoever is drawing the row, not to the row itself.
+  String accommodationText({
+    required String traveler,
+    required String overnight,
+  }) {
+    final parts = <String>[
+      if (employee.hasTravelPermission) traveler,
+      if (employee.hasHousing) overnight,
+    ];
+    return parts.isEmpty ? '—' : parts.join(' · ');
+  }
 }
 
 class PunchReportState {
@@ -112,6 +184,15 @@ class PunchReportState {
 
   /// Empty means every employee.
   final String employeeFilter;
+
+  /// Empty means every department.
+  final String departmentFilter;
+
+  /// Empty means every position.
+  final String positionFilter;
+
+  /// Which housing flag to keep. [PunchHousingFilter.all] keeps everybody.
+  final PunchHousingFilter housingFilter;
 
   /// Show only days carrying something worth attention.
   ///
@@ -164,6 +245,9 @@ class PunchReportState {
     required this.end,
     this.preset = PunchRangePreset.today,
     this.employeeFilter = '',
+    this.departmentFilter = '',
+    this.positionFilter = '',
+    this.housingFilter = PunchHousingFilter.all,
     this.issuesOnly = false,
     this.isLoading = true,
     this.isSyncing = false,
@@ -178,20 +262,99 @@ class PunchReportState {
   });
 
   /// The rows the screen shows and the exports write — [rows] narrowed by the
-  /// issues-only toggle.
-  List<PunchReportRow> get visibleRows => issuesOnly
-      ? [
-          for (final row in rows)
-            if (row.hasIssue) row,
-        ]
-      : rows;
+  /// employee, department, position and housing filters, then the issues-only
+  /// toggle.
+  ///
+  /// All of these are views over [rows] rather than narrower queries: the
+  /// whole range is already loaded, and changing a filter is meant to feel
+  /// instant.
+  List<PunchReportRow> get visibleRows {
+    final scoped = [
+      for (final row in rows)
+        if (_matchesEmployeeFilters(row)) row,
+    ];
+
+    return issuesOnly
+        ? [
+            for (final row in scoped)
+              if (row.hasIssue) row,
+          ]
+        : scoped;
+  }
 
   /// One line per person over the visible range, worst first.
   List<EmployeePattern> get patterns => EmployeePattern.from(visibleRows);
 
-  /// How many of the loaded days carry something worth attention. Shown on the
-  /// toggle so an admin knows whether turning it on will leave anything.
-  int get issueCount => rows.where((row) => row.hasIssue).length;
+  /// How many of the days in the current employee scope carry something worth
+  /// attention. Shown on the toggle so an admin knows whether turning it on
+  /// will leave anything.
+  int get issueCount =>
+      rows.where((row) => row.hasIssue && _matchesEmployeeFilters(row)).length;
+
+  /// The departments present in the loaded staff list, plus the one currently
+  /// selected — so a filter that is somehow stale never leaves the dropdown
+  /// without a matching item.
+  List<String> get departmentOptions =>
+      _options([departmentFilter, for (final e in employees) e.department]);
+
+  /// The positions present in the loaded staff list, plus the current one.
+  List<String> get positionOptions =>
+      _options([positionFilter, for (final e in employees) e.position]);
+
+  /// True when an employee, department, position or housing filter is set.
+  bool get hasEmployeeFilters =>
+      employeeFilter.isNotEmpty ||
+      departmentFilter.isNotEmpty ||
+      positionFilter.isNotEmpty ||
+      housingFilter != PunchHousingFilter.all;
+
+  bool _matchesEmployeeFilters(PunchReportRow row) {
+    final employee = row.employee;
+
+    if (employeeFilter.isNotEmpty && employee.id != employeeFilter) {
+      return false;
+    }
+    if (departmentFilter.isNotEmpty &&
+        _normalized(employee.department) != _normalized(departmentFilter)) {
+      return false;
+    }
+    if (positionFilter.isNotEmpty &&
+        _normalized(employee.position) != _normalized(positionFilter)) {
+      return false;
+    }
+
+    return switch (housingFilter) {
+      PunchHousingFilter.all => true,
+      PunchHousingFilter.housed => employee.hasHousing,
+      PunchHousingFilter.notHoused => !employee.hasHousing,
+    };
+  }
+
+  /// Distinct, non-empty values in display casing, sorted case-insensitively.
+  static List<String> _options(Iterable<String?> values) {
+    final byKey = <String, String>{};
+    for (final raw in values) {
+      final value = raw?.trim() ?? '';
+      if (value.isEmpty) continue;
+      byKey.putIfAbsent(value.toLowerCase(), () => value);
+    }
+    return byKey.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
+  static String _normalized(String? value) =>
+      (value ?? '').trim().toLowerCase();
+
+  /// The widest day on screen, in scan pairs. Every output uses it so the
+  /// columns run from the first check-in to the last check-out of anybody in
+  /// the range, and no row is cut short.
+  int get maxPairs {
+    var count = 1;
+    for (final row in visibleRows) {
+      if (row.pairs.length > count) count = row.pairs.length;
+    }
+    return count;
+  }
 
   Duration get totalWorked => visibleRows.fold(
     Duration.zero,
@@ -213,6 +376,9 @@ class PunchReportState {
     DateTime? end,
     PunchRangePreset? preset,
     String? employeeFilter,
+    String? departmentFilter,
+    String? positionFilter,
+    PunchHousingFilter? housingFilter,
     bool? issuesOnly,
     bool? isLoading,
     bool? isSyncing,
@@ -233,6 +399,9 @@ class PunchReportState {
     end: end ?? this.end,
     preset: preset ?? this.preset,
     employeeFilter: employeeFilter ?? this.employeeFilter,
+    departmentFilter: departmentFilter ?? this.departmentFilter,
+    positionFilter: positionFilter ?? this.positionFilter,
+    housingFilter: housingFilter ?? this.housingFilter,
     issuesOnly: issuesOnly ?? this.issuesOnly,
     isLoading: isLoading ?? this.isLoading,
     isSyncing: isSyncing ?? this.isSyncing,
@@ -279,12 +448,14 @@ class PunchReportCubit extends Cubit<PunchReportState> {
     EmployeeModel employee,
     AttendanceRecordModel record,
     ShiftSchedules schedules,
-    WorkCalendar calendar,
-  ) {
+    WorkCalendar calendar, {
+    List<String> punches = const [],
+  }) {
     final schedule = schedules.of(employee);
     return PunchReportRow(
       employee: employee,
       record: record,
+      punches: punches,
       schedule: schedule,
       dayKind: calendar.kindOfDate(record.date, schedule),
     );
@@ -307,21 +478,27 @@ class PunchReportCubit extends Cubit<PunchReportState> {
         _iso(state.start),
         _iso(state.end),
       );
+      final punches = await _device.punchTimesByDay(
+        _iso(state.start),
+        _iso(state.end),
+      );
 
       final byId = {for (final e in employees) e.id: e};
 
       final rows =
           records
-              .where(
-                (r) =>
-                    state.employeeFilter.isEmpty ||
-                    r.employeeId == state.employeeFilter,
-              )
               .map((r) {
                 final employee = byId[r.employeeId];
                 return employee == null
                     ? null
-                    : _rowFor(employee, r, schedules, calendar);
+                    : _rowFor(
+                        employee,
+                        r,
+                        schedules,
+                        calendar,
+                        punches:
+                            punches['${r.employeeId}|${r.date}'] ?? const [],
+                      );
               })
               .whereType<PunchReportRow>()
               .toList()
@@ -333,10 +510,18 @@ class PunchReportCubit extends Cubit<PunchReportState> {
                   : a.employee.fullName.compareTo(b.employee.fullName);
             });
 
+      // The selected person may have been deleted while this screen was open.
+      // Dropping a filter that no longer matches anybody is better than leaving
+      // the screen stuck on an empty table with a name the report cannot show.
+      final employeeFilter = employees.any((e) => e.id == state.employeeFilter)
+          ? state.employeeFilter
+          : '';
+
       emit(
         state.copyWith(
           rows: rows,
           employees: employees,
+          employeeFilter: employeeFilter,
           // The company default, shown in the header as the day anybody without
           // a shift works. Each row carries its own hours; see [PunchReportRow].
           schedule: schedules.companyDefault,
@@ -396,7 +581,6 @@ class PunchReportCubit extends Cubit<PunchReportState> {
     required PunchReportPdfLabels labels,
     required String locale,
     required bool isArabic,
-    required String Function(List<String> labelKeys) statusLabel,
   }) async {
     if (state.isExporting || state.visibleRows.isEmpty) return;
     emit(
@@ -406,21 +590,24 @@ class PunchReportCubit extends Cubit<PunchReportState> {
     try {
       final dayFormat = DateFormat('EEEE', locale);
 
-      final rows = state.visibleRows
-          .map(
-            (r) => PunchReportPdfRow(
-              name: r.employee.fullName,
-              date: r.record.date,
-              dayName: dayFormat.format(r.day),
-              checkIn: r.record.checkInTime ?? '—',
-              checkOut: r.record.checkOutTime ?? '—',
-              breakTime: r.breaks.isEmpty ? '—' : _hm(r.breakTime),
-              overtime: r.overtime == null ? '—' : _hm(r.overtime!),
-              workTime: r.worked == null ? '—' : _hm(r.worked!),
-              status: statusLabel(r.labelKeys),
+      final rows = <PunchReportPdfRow>[];
+      for (final (index, r) in state.visibleRows.indexed) {
+        rows.add(
+          PunchReportPdfRow(
+            serial: index + 1,
+            surname: r.surname,
+            name: r.employee.fullName,
+            personalId: r.personalId,
+            accommodation: r.accommodationText(
+              traveler: labels.traveler,
+              overnight: labels.overnight,
             ),
-          )
-          .toList();
+            date: r.record.date,
+            dayName: dayFormat.format(r.day),
+            pairs: r.pairs,
+          ),
+        );
+      }
 
       final file = await _pdf.write(
         rows: rows,
@@ -496,13 +683,12 @@ class PunchReportCubit extends Cubit<PunchReportState> {
   /// The admin chooses where it goes. The dialog opens on the folder they
   /// used last time, and closing it calls the whole thing off.
   ///
-  /// [labels] arrive already translated and [statusLabel] turns the day's
-  /// status into a word, because none of that is this layer's business.
+  /// [labels] arrive already translated, because none of that is this layer's
+  /// business.
   Future<void> exportMonthlyExcel({
     required MonthlyPunchesExcelLabels labels,
     required String locale,
     required bool isArabic,
-    required String Function(List<String> labelKeys) statusLabel,
     required String saveLabel,
   }) async {
     if (state.isExportingExcel) return;
@@ -542,13 +728,18 @@ class PunchReportCubit extends Cubit<PunchReportState> {
 
     try {
       final lastDay = DateTime(month.year, month.month + 1, 0).day;
+      final monthEnd = DateTime(month.year, month.month, lastDay);
 
       final schedules = await _shifts.getSchedules();
       final calendar = await _holidays.getCalendar();
       final employees = await _repo.getAllEmployees();
       final records = await _repo.getRecordsByDateRange(
         _iso(month),
-        _iso(DateTime(month.year, month.month, lastDay)),
+        _iso(monthEnd),
+      );
+      final punches = await _device.punchTimesByDay(
+        _iso(month),
+        _iso(monthEnd),
       );
 
       final dayFormat = DateFormat('EEEE', locale);
@@ -581,22 +772,11 @@ class PunchReportCubit extends Cubit<PunchReportState> {
           // people argue about, so the file has to show it rather than skip
           // over it and leave a gap that reads like an oversight.
           if (record == null) {
-            // A rest day or a holiday says so rather than reading as a gap in
-            // the file. This is where the calendar earns its keep: a month of
-            // Fridays that used to look like missing data now explains itself.
-            final kind = calendar.kindOfDate(date, schedules.of(employee));
+            // A day nobody scanned still gets a line, with blank pairs. That
+            // absence is exactly what people argue about, so it is shown
+            // rather than skipped over.
             rows.add(
-              MonthlyPunchRow(
-                date: date,
-                dayName: dayName,
-                checkIn: '—',
-                checkOut: '—',
-                breaks: '—',
-                breakTime: '—',
-                overtime: '—',
-                worked: '—',
-                status: statusLabel([dayKindLabelKey(kind)]),
-              ),
+              MonthlyPunchRow(date: date, dayName: dayName, pairs: const []),
             );
             continue;
           }
@@ -624,21 +804,16 @@ class PunchReportCubit extends Cubit<PunchReportState> {
             presentDays++;
           }
 
+          final rawPunches =
+              punches['${employee.id}|$date'] ?? const <String>[];
+
           rows.add(
             MonthlyPunchRow(
               date: date,
               dayName: dayName,
-              checkIn: record.checkInTime ?? '—',
-              checkOut: record.checkOutTime ?? '—',
-              breaks: totals.breaks.isEmpty
-                  ? '—'
-                  : totals.breaks
-                        .map((b) => '${b.out} → ${b.backIn ?? '…'}')
-                        .join('; '),
-              breakTime: totals.breaks.isEmpty ? '—' : _hm(totals.breakTime),
-              overtime: totals.overtime == null ? '—' : _hm(totals.overtime!),
-              worked: totals.worked == null ? '—' : _hm(totals.worked!),
-              status: statusLabel(totals.labelKeys),
+              pairs: PunchPairs.fromOrdered(
+                _scanTimes(record, rawPunches, totals.breaks),
+              ),
               corrected: record.isCorrected
                   ? (record.correctedBy?.trim().isNotEmpty == true
                         ? record.correctedBy!
@@ -651,6 +826,9 @@ class PunchReportCubit extends Cubit<PunchReportState> {
         sheets.add(
           MonthlyPunchEmployee(
             name: employee.fullName,
+            surname: employee.surname?.trim() ?? '',
+            personalId: employee.personalId?.trim() ?? '',
+            accommodation: _accommodationText(employee, labels),
             number: employee.employeeId ?? '',
             department: employee.department,
             rows: rows,
@@ -735,10 +913,29 @@ class PunchReportCubit extends Cubit<PunchReportState> {
   Future<void> setRange(DateTime start, DateTime end) =>
       _apply(PunchRangePreset.custom, start, end);
 
-  Future<void> setEmployee(String employeeId) async {
-    emit(state.copyWith(employeeFilter: employeeId));
-    await load();
-  }
+  /// The employee, department, position and housing filters all narrow the
+  /// loaded rows rather than re-querying, so they are instant and keep the
+  /// table, totals, patterns and exports in step.
+  void setEmployee(String employeeId) =>
+      emit(state.copyWith(employeeFilter: employeeId));
+
+  void setDepartment(String department) =>
+      emit(state.copyWith(departmentFilter: department));
+
+  void setPosition(String position) =>
+      emit(state.copyWith(positionFilter: position));
+
+  void setHousing(PunchHousingFilter value) =>
+      emit(state.copyWith(housingFilter: value));
+
+  void clearEmployeeFilters() => emit(
+    state.copyWith(
+      employeeFilter: '',
+      departmentFilter: '',
+      positionFilter: '',
+      housingFilter: PunchHousingFilter.all,
+    ),
+  );
 
   /// Narrows the table to the days worth looking at.
   ///
@@ -768,44 +965,77 @@ class PunchReportCubit extends Cubit<PunchReportState> {
 
   /// The report as CSV, for the admin to hand to payroll.
   ///
-  /// Every break goes in one cell, separated by semicolons, so a day stays one
-  /// line however many times the person stepped out.
+  /// One pair of columns per scan pair, wide enough for the busiest day in the
+  /// range. A day with fewer scans gets empty cells rather than a shorter line,
+  /// so every row stays aligned in a spreadsheet.
   String toCsv() {
-    final buffer = StringBuffer()
-      ..writeln(
-        'Employee,Date,Check In,Check Out,Breaks,Break Count,'
-        'Break Time,Overtime In,Overtime Out,Worked,Overtime,Status',
-      );
+    final pairCount = state.maxPairs;
+    final headers = <String>[
+      'No.',
+      'Surname',
+      'Full Name',
+      'Personal ID',
+      'Accommodation',
+      'Date',
+    ];
 
-    for (final row in state.visibleRows) {
-      final r = row.record;
-      buffer.writeln(
-        [
-          _csv(row.employee.fullName),
-          r.date,
-          r.checkInTime ?? '',
-          r.checkOutTime ?? '',
-          _csv(row.breaks.map((b) => '${b.out}-${b.backIn ?? ''}').join('; ')),
-          '${row.breaks.length}',
-          _hhmm(row.breakTime),
-          r.overtimeInTime ?? '',
-          r.overtimeOutTime ?? '',
-          _hhmm(row.worked),
-          _hhmm(row.overtime),
-          _csv(row.labelKeys.join('; ')),
-        ].join(','),
-      );
+    for (var i = 1; i <= pairCount; i++) {
+      headers
+        ..add(switch (i) {
+          1 => 'First Check In',
+          2 => 'Second Check In',
+          _ => 'Check In $i',
+        })
+        ..add(switch (i) {
+          1 => 'First Check Out',
+          2 => 'Second Check Out',
+          _ => 'Check Out $i',
+        });
+    }
+
+    final buffer = StringBuffer()..writeln(headers.join(','));
+
+    for (final (index, row) in state.visibleRows.indexed) {
+      final cells = <String>[
+        '${index + 1}',
+        _csv(row.surname),
+        _csv(row.employee.fullName),
+        _csv(row.personalId),
+        _csv(
+          row.accommodationText(
+            traveler: 'Traveler',
+            overnight: 'Overnight stay',
+          ),
+        ),
+        row.record.date,
+      ];
+
+      for (var i = 0; i < pairCount; i++) {
+        final pair = i < row.pairs.length ? row.pairs[i] : null;
+        cells
+          ..add(pair?.checkIn ?? '')
+          ..add(pair?.checkOut ?? '');
+      }
+
+      buffer.writeln(cells.join(','));
     }
     return buffer.toString();
+  }
+
+  static String _accommodationText(
+    EmployeeModel employee,
+    MonthlyPunchesExcelLabels labels,
+  ) {
+    final parts = <String>[
+      if (employee.hasTravelPermission) labels.traveler,
+      if (employee.hasHousing) labels.overnight,
+    ];
+    return parts.isEmpty ? '—' : parts.join(' · ');
   }
 
   static String _csv(String value) => value.contains(',') || value.contains('"')
       ? '"${value.replaceAll('"', '""')}"'
       : value;
-
-  static String _hhmm(Duration? d) => d == null
-      ? ''
-      : '${d.inHours}:${(d.inMinutes % 60).toString().padLeft(2, '0')}';
 
   /// For the page rather than a spreadsheet cell: readable, not parseable.
   static String _hm(Duration d) =>

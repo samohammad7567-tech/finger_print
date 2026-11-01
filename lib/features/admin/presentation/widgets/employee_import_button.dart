@@ -145,7 +145,9 @@ class EmployeeImportButton extends StatelessWidget {
   /// business knowing the language.
   EmployeeImportLabels _labels() => EmployeeImportLabels(
     sheetName: LangKeys.employees.tr(),
+    surname: LangKeys.adminSurname.tr(),
     fullName: LangKeys.adminFullName.tr(),
+    personalId: LangKeys.adminPersonalId.tr(),
     employeeNumber: LangKeys.adminEmployeeId.tr(),
     department: LangKeys.adminDepartment.tr(),
     position: LangKeys.adminPosition.tr(),

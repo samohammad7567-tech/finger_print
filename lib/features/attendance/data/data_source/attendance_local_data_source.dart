@@ -150,7 +150,9 @@ class AttendanceLocalDataSource {
       await _db.insert(_employees, {
         'id': id,
         'employee_number': number,
+        'surname': _normalize(data['surname']),
         'full_name': (data['full_name'] as String? ?? '').trim(),
+        'personal_id': _normalize(data['personal_id']),
         'department': (data['department'] as String? ?? '').trim(),
         'photo_url': _normalize(data['photo_url']),
         'has_housing': _int(data['has_housing']),
@@ -159,6 +161,7 @@ class AttendanceLocalDataSource {
         'position': _normalize(data['position']),
         'qr_code': _normalize(data['qr_code']),
         'device_user_id': deviceUserId,
+        'enrolled_fingers': _fingerSlots(data['enrolled_fingers']),
         'shift_id': _normalize(data['shift_id']),
         'is_active': _int(data['is_active'], fallback: 1),
         'created_at': now,
@@ -274,8 +277,18 @@ class AttendanceLocalDataSource {
         updates['device_user_id'] = deviceUserId;
       }
 
+      if (data.containsKey('enrolled_fingers')) {
+        updates['enrolled_fingers'] = _fingerSlots(data['enrolled_fingers']);
+      }
+
+      if (data.containsKey('surname')) {
+        updates['surname'] = _normalize(data['surname']);
+      }
       if (data.containsKey('full_name')) {
         updates['full_name'] = (data['full_name'] as String? ?? '').trim();
+      }
+      if (data.containsKey('personal_id')) {
+        updates['personal_id'] = _normalize(data['personal_id']);
       }
       if (data.containsKey('department')) {
         updates['department'] = (data['department'] as String? ?? '').trim();
@@ -788,6 +801,25 @@ class AttendanceLocalDataSource {
     int v => v == 0 ? 0 : 1,
     _ => fallback,
   };
+
+  /// Finger slots as the column stores them: sorted indices joined by commas,
+  /// or null when there are none. Accepts a set from the form as readily as the
+  /// string read back from a row, and drops anything outside the terminal's ten.
+  static String? _fingerSlots(Object? value) {
+    final Iterable<Object?> raw = switch (value) {
+      String v => v.split(','),
+      Iterable v => v,
+      _ => const [],
+    };
+    final fingers = <int>{};
+    for (final item in raw) {
+      final finger = int.tryParse(item.toString().trim());
+      if (finger != null && finger >= 0 && finger < 10) fingers.add(finger);
+    }
+    if (fingers.isEmpty) return null;
+    final sorted = fingers.toList()..sort();
+    return sorted.join(',');
+  }
 
   static String _nowIso() => DateTime.now().toIso8601String();
 

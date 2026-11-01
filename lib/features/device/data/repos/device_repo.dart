@@ -80,12 +80,25 @@ class DeviceRepo {
   Future<DeviceSyncResult> sync(DeviceSettingsModel settings) async {
     var imported = 0;
     var pending = 0;
+    var users = const <ZkDeviceUserModel>[];
+
     if (settings.importEmployees) {
-      final users = await _device.getDeviceUsers(settings);
+      users = await _device.getDeviceUsers(settings);
       final outcome = await _sync.importEmployees(users);
       imported = outcome.created;
       pending = outcome.pending;
+    } else {
+      // The fingerprint count is refreshed from the terminal even when nobody
+      // is being imported, but a failed user read must not take the punch sync
+      // down with it.
+      try {
+        users = await _device.getDeviceUsers(settings);
+      } catch (_) {
+        users = const <ZkDeviceUserModel>[];
+      }
     }
+
+    await _refreshFingerprints(settings, users);
 
     final punches = await _device.getPunches(settings);
     final result = await _sync.ingest(
@@ -122,6 +135,7 @@ class DeviceRepo {
   fetchEmployees(DeviceSettingsModel settings) async {
     final users = await _device.getDeviceUsers(settings);
     final outcome = await _sync.importEmployees(users);
+    await _refreshFingerprints(settings, users);
 
     // Anyone created here may have been punching for weeks while nobody was on
     // file to own it. The punches were parked, not dropped, so this is where
@@ -138,6 +152,36 @@ class DeviceRepo {
       dismissed: outcome.dismissed,
       readFromDevice: users.length,
     );
+  }
+
+  /// Re-reads every enrolled finger from the terminal and stores the result
+  /// against the matching employees.
+  ///
+  /// Best-effort on purpose: a terminal that refuses a template read must not
+  /// fail the punch sync that is the reason the admin pressed the button.
+  Future<void> _refreshFingerprints(
+    DeviceSettingsModel settings,
+    List<ZkDeviceUserModel> users,
+  ) async {
+    if (users.isEmpty) return;
+
+    try {
+      final mapped = await _sync.mappedDeviceUserIds();
+      final targets = users
+          .where((user) => mapped.contains(user.deviceUserId))
+          .toList();
+      if (targets.isEmpty) return;
+
+      final fingers = await _enrollment.enrolledFingersForUsers(
+        settings,
+        targets,
+      );
+      if (fingers.isEmpty) return;
+      await _sync.saveEnrolledFingers(fingers);
+    } catch (_) {
+      // Punches are still worth importing when the sensor side of the read
+      // fails; the stored counts simply stay as they were.
+    }
   }
 
   /// What sending the staff list to the terminal would do, worked out against
@@ -242,6 +286,18 @@ class DeviceRepo {
         endDate,
         debounceSeconds: _settings.read().debounceSeconds,
       );
+
+  /// The raw scans behind the report, keyed by `employeeId|date`, so the
+  /// report can pair them by order rather than by the times the fold decided
+  /// they meant.
+  Future<Map<String, List<String>>> punchTimesByDay(
+    String startDate,
+    String endDate,
+  ) => _sync.punchTimesByDay(
+    startDate,
+    endDate,
+    debounceSeconds: _settings.read().debounceSeconds,
+  );
 
   Future<List<({String deviceUserId, int punchCount, DateTime lastSeen})>>
   getUnmappedUserIds() => _sync.getUnmappedUserIds();

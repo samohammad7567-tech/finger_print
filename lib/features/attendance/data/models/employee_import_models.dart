@@ -14,7 +14,9 @@ class EmployeeImportRow {
   /// find the problem in their own file.
   final int line;
 
+  final String? surname;
   final String fullName;
+  final String? personalId;
   final String? employeeNumber;
   final String department;
   final String? position;
@@ -26,7 +28,9 @@ class EmployeeImportRow {
 
   const EmployeeImportRow({
     required this.line,
+    this.surname,
     required this.fullName,
+    this.personalId,
     this.employeeNumber,
     this.department = '',
     this.position,
@@ -48,7 +52,9 @@ class EmployeeImportRow {
   /// when the admin clears the field.
   Map<String, dynamic> toEmployeeData() => {
     'employee_id': employeeNumber ?? '',
+    'surname': surname,
     'full_name': fullName,
+    'personal_id': personalId,
     'department': department,
     'position': position,
     'phone': phone,
