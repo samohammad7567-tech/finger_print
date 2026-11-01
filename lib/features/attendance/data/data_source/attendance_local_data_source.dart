@@ -144,14 +144,24 @@ class AttendanceLocalDataSource {
         throw const ApiException(LangKeys.errorDuplicateDeviceUser);
       }
 
+      final surname = _normalize(data['surname']);
+      final fullName = (data['full_name'] as String? ?? '').trim();
+      // Either field may repeat on its own — two staff can share a family name
+      // or a first name — but both together name one person.
+      if (surname != null &&
+          fullName.isNotEmpty &&
+          await _namePairTaken(surname, fullName, null)) {
+        throw const ApiException(LangKeys.errorDuplicateEmployeeName);
+      }
+
       final now = _nowIso();
       final id = DbId.generate();
 
       await _db.insert(_employees, {
         'id': id,
         'employee_number': number,
-        'surname': _normalize(data['surname']),
-        'full_name': (data['full_name'] as String? ?? '').trim(),
+        'surname': surname,
+        'full_name': fullName,
         'personal_id': _normalize(data['personal_id']),
         'department': (data['department'] as String? ?? '').trim(),
         'photo_url': _normalize(data['photo_url']),
@@ -286,6 +296,21 @@ class AttendanceLocalDataSource {
       }
       if (data.containsKey('full_name')) {
         updates['full_name'] = (data['full_name'] as String? ?? '').trim();
+      }
+      if (data.containsKey('surname') || data.containsKey('full_name')) {
+        // The pair is checked against the values the row will hold after the
+        // update, not just the keys this call happened to carry.
+        final surname = data.containsKey('surname')
+            ? _normalize(data['surname'])
+            : existing.surname;
+        final fullName = data.containsKey('full_name')
+            ? (data['full_name'] as String? ?? '').trim()
+            : existing.fullName;
+        if (surname != null &&
+            fullName.isNotEmpty &&
+            await _namePairTaken(surname, fullName, id)) {
+          throw const ApiException(LangKeys.errorDuplicateEmployeeName);
+        }
       }
       if (data.containsKey('personal_id')) {
         updates['personal_id'] = _normalize(data['personal_id']);
@@ -762,6 +787,40 @@ class AttendanceLocalDataSource {
       limit: 1,
     );
     return rows.isNotEmpty;
+  }
+
+  /// Whether another employee already holds this surname **and** full name.
+  ///
+  /// Either field alone may repeat: two people can share a family name, and
+  /// first names repeat far more often. The pair together identifies one
+  /// person, so only the pair is refused. Comparison uses [NameMatching.key] so
+  /// a doubled space, a different alef or a different case is still the same
+  /// pair rather than a loophole.
+  Future<bool> _namePairTaken(
+    String surname,
+    String fullName,
+    String? exceptId,
+  ) async {
+    final wanted =
+        '${NameMatching.key(surname)}\u0000${NameMatching.key(fullName)}';
+    if (wanted == '\u0000') return false;
+
+    final rows = await _db.query(
+      _employees,
+      columns: ['surname', 'full_name'],
+      where: exceptId == null ? null : 'id != ?',
+      whereArgs: exceptId == null ? null : [exceptId],
+    );
+
+    for (final row in rows) {
+      final otherSurname = row['surname'] as String?;
+      final otherName = row['full_name'] as String?;
+      if (otherSurname == null || otherName == null) continue;
+      final other =
+          '${NameMatching.key(otherSurname)}\u0000${NameMatching.key(otherName)}';
+      if (other == wanted) return true;
+    }
+    return false;
   }
 
   /// The working hours this employee's day is judged by: their shift's, or the

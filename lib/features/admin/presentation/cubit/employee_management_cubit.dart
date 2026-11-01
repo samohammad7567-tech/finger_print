@@ -592,7 +592,15 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
     }
   }
 
-  Future<void> saveEmployee(Map<String, dynamic> data, {String? editId}) async {
+  /// Saves a new or edited employee and reports the failure key to the caller.
+  ///
+  /// The sheet needs the key, not just the state: a refusal such as the same
+  /// surname and full name pair must leave the typed values on screen so the
+  /// admin can correct them. Null means the row was written.
+  Future<String?> saveEmployee(
+    Map<String, dynamic> data, {
+    String? editId,
+  }) async {
     emit(state.copyWith(isSaving: true, errorKey: null, successKey: null));
     try {
       if (editId != null) {
@@ -610,11 +618,16 @@ class EmployeeManagementCubit extends Cubit<EmployeeManagementState> {
       // Refresh in the background: the row is already written, so the form must
       // not wait on a list read (which also asks the device) to close.
       unawaited(load());
-    } catch (e) {
+    } on ApiException catch (e) {
+      emit(state.copyWith(isSaving: false, errorKey: e.errorKey));
+      return e.errorKey;
+    } catch (_) {
       emit(
         state.copyWith(isSaving: false, errorKey: LangKeys.failedSaveEmployee),
       );
+      return LangKeys.failedSaveEmployee;
     }
+    return null;
   }
 
   /// Deletes an employee here **and** on the terminal.

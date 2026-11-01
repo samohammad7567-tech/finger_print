@@ -185,6 +185,8 @@
   "error_duplicate_record": "يوجد سجل حضور لهذا الموظف اليوم بالفعل",
   "error_duplicate_permission": "يوجد إذن من هذا النوع في هذا التاريخ بالفعل",
   "error_duplicate_employee_number": "رقم الموظف مستخدم بالفعل",
+  "error_duplicate_employee_name": "يوجد موظف بنفس اللقب والاسم الكامل بالفعل",
+  "field_required": "مطلوب",
   "error_invalid_reset_token": "رابط إعادة التعيين غير صالح أو منتهي الصلاحية",
   "forgot_password": "نسيت كلمة المرور؟",
   "enter_email_for_reset": "أدخل بريدك الإلكتروني أولاً ثم اضغط نسيت كلمة المرور",

@@ -31,6 +31,7 @@ class AppTextField extends StatelessWidget {
     this.onTap,
     this.autofocus = false,
     this.onSubmitted,
+    this.errorText,
   });
 
   final TextEditingController? controller;
@@ -51,6 +52,10 @@ class AppTextField extends StatelessWidget {
   /// Enter, for the same case: a one-field dialog should not need the mouse.
   final ValueChanged<String>? onSubmitted;
 
+  /// Shown under the field by the theme's error style. Null when the value is
+  /// acceptable, so the field does not need a [Form] to report a refusal.
+  final String? errorText;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -66,6 +71,7 @@ class AppTextField extends StatelessWidget {
       style: AppTextStyles.body.copyWith(color: context.color.foreground),
       decoration: InputDecoration(
         hintText: hint,
+        errorText: errorText,
         prefixIcon: prefixIcon == null
             ? null
             : Icon(

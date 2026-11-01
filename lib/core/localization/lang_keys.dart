@@ -38,6 +38,8 @@ class LangKeys {
   static const errorDuplicateRecord = 'error_duplicate_record';
   static const errorDuplicatePermission = 'error_duplicate_permission';
   static const errorDuplicateEmployeeNumber = 'error_duplicate_employee_number';
+  static const errorDuplicateEmployeeName = 'error_duplicate_employee_name';
+  static const fieldRequired = 'field_required';
   static const errorInvalidResetToken = 'error_invalid_reset_token';
 
   static const dashboard = 'dashboard';

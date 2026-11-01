@@ -91,6 +91,14 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   bool _isActive = true;
   bool _saving = false;
 
+  /// Inline refusals. The three identity fields are required, and the pair
+  /// (surname, full name) must be unique — the data source decides the latter,
+  /// which is why it can arrive from the save rather than from this form.
+  String? _surnameError;
+  String? _nameError;
+  String? _personalIdError;
+  String? _formError;
+
   /// Captured in initState — dispose() runs after the element is unmounted, so
   /// it cannot read the cubit off the context by then.
   late final EnrollmentCubit _enrollment;
@@ -181,17 +189,40 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
   }
 
   Future<void> _save() async {
-    // The department is no longer required: "no department" is a real answer,
-    // and the only one at a site with a single department.
-    if (_nameCtrl.text.trim().isEmpty) return;
+    final surname = _surnameCtrl.text.trim();
+    final name = _nameCtrl.text.trim();
+    final personalId = _personalIdCtrl.text.trim();
 
-    setState(() => _saving = true);
+    // Required: the surname, the full name and the personal id are how a
+    // person is told apart on reports and at the terminal. The department is
+    // not — "no department" is a real answer at a site with only one.
+    final surnameError = surname.isEmpty ? LangKeys.fieldRequired.tr() : null;
+    final nameError = name.isEmpty ? LangKeys.fieldRequired.tr() : null;
+    final personalIdError = personalId.isEmpty
+        ? LangKeys.fieldRequired.tr()
+        : null;
+    if (surnameError != null || nameError != null || personalIdError != null) {
+      setState(() {
+        _surnameError = surnameError;
+        _nameError = nameError;
+        _personalIdError = personalIdError;
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _formError = null;
+      _surnameError = null;
+      _nameError = null;
+      _personalIdError = null;
+    });
     final data = {
       // Deliberately absent: an omitted key means "leave it alone" on edit, and
       // on create it tells the data source to take the next number itself.
-      'surname': _surnameCtrl.text,
-      'full_name': _nameCtrl.text,
-      'personal_id': _personalIdCtrl.text,
+      'surname': surname,
+      'full_name': name,
+      'personal_id': personalId,
       'department': _department,
       'position': _posCtrl.text,
       'phone': _phoneCtrl.text,
@@ -212,14 +243,25 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
     // can show more than a bare "enrolled" badge without asking the device.
     data['enrolled_fingers'] = enrollment.state.enrolledFingers;
 
-    await context.read<EmployeeManagementCubit>().saveEmployee(
+    final errorKey = await context.read<EmployeeManagementCubit>().saveEmployee(
       data,
       editId: widget.employee?.id,
     );
 
+    // A refusal keeps the sheet and everything typed in it; closing here would
+    // make the admin re-enter the whole form to change one field.
+    if (!mounted) return;
+    if (errorKey != null) {
+      setState(() {
+        _saving = false;
+        _formError = errorKey.tr();
+      });
+      return;
+    }
+
     // Keeps the name on the device in step with the name in the app. It is a
     // network round-trip to the terminal, so it must not hold the sheet open.
-    unawaited(enrollment.pushName(_nameCtrl.text));
+    unawaited(enrollment.pushName(name));
 
     if (mounted) Navigator.pop(context);
   }
@@ -276,12 +318,22 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
             AppTextField(
               controller: _surnameCtrl,
               hint: LangKeys.adminSurname.tr(),
+              errorText: _surnameError,
+              onChanged: (_) {
+                if (_surnameError != null) {
+                  setState(() => _surnameError = null);
+                }
+              },
             ),
             const SizedBox(height: 10),
             _label(LangKeys.adminFullName.tr()),
             AppTextField(
               controller: _nameCtrl,
               hint: LangKeys.adminFullName.tr(),
+              errorText: _nameError,
+              onChanged: (_) {
+                if (_nameError != null) setState(() => _nameError = null);
+              },
             ),
             const SizedBox(height: 10),
             _label(LangKeys.adminPersonalId.tr()),
@@ -289,6 +341,12 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
               controller: _personalIdCtrl,
               hint: LangKeys.adminPersonalId.tr(),
               keyboardType: TextInputType.number,
+              errorText: _personalIdError,
+              onChanged: (_) {
+                if (_personalIdError != null) {
+                  setState(() => _personalIdError = null);
+                }
+              },
             ),
             const SizedBox(height: 10),
             _label(LangKeys.adminDepartment.tr()),
@@ -333,6 +391,15 @@ class _EmployeeFormSheetState extends State<_EmployeeFormSheet> {
             ),
             const SizedBox(height: AppDimens.spaceMd),
             EmployeeFingerprintField(nameOf: () => _nameCtrl.text),
+            if (_formError != null) ...[
+              const SizedBox(height: AppDimens.spaceMd),
+              Text(
+                _formError!,
+                style: AppTextStyles.meta.copyWith(
+                  color: context.color.destructive,
+                ),
+              ),
+            ],
             const SizedBox(height: AppDimens.spaceLg),
             AppPrimaryButton(
               onPressed: _saving ? null : _save,

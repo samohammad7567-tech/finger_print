@@ -185,6 +185,8 @@
   "error_duplicate_record": "An attendance record already exists for this employee today",
   "error_duplicate_permission": "A permission of this type already exists on this date",
   "error_duplicate_employee_number": "This employee number is already in use",
+  "error_duplicate_employee_name": "An employee with this surname and full name already exists",
+  "field_required": "Required",
   "error_invalid_reset_token": "The reset link is invalid or has expired",
   "forgot_password": "Forgot Password?",
   "enter_email_for_reset": "Enter your email first, then tap Forgot Password",
