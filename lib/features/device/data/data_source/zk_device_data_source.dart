@@ -143,12 +143,27 @@ class ZkDeviceDataSource {
   ///
   /// Worth having: punch timestamps come from the device, so a terminal whose
   /// clock has drifted silently files attendance under the wrong time, and in
-  /// the worst case the wrong day.
+  /// the worst case the wrong day. [DeviceRepo.sync] does this before it reads
+  /// anything, so every punch it returns is on this PC's clock.
+  ///
+  /// The package answers `null` when the terminal refuses the write, and its
+  /// command has no timeout of its own, so both failure modes are made visible
+  /// here instead of passing as a silent success.
   Future<void> syncDeviceClock(DeviceSettingsModel settings) async {
     return _withDevice(settings, (device) async {
-      await device.setTime(DateTime.now());
+      final reply = await device
+          .setTime(DateTime.now())
+          .timeout(_clockTimeout);
+      if (reply == null) {
+        throw const ApiException(LangKeys.errorDeviceClockFailed);
+      }
     });
   }
+
+  /// Ceiling on the clock write. The package's `setTime` waits on the socket
+  /// with no bound, and a terminal that swallows the command would otherwise
+  /// hold the device gate open forever.
+  static const _clockTimeout = Duration(seconds: 10);
 
   // ------------------------------------------------- wiping and rebooting it
 

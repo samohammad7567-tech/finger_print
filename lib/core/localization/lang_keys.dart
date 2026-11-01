@@ -220,6 +220,7 @@ class LangKeys {
   static const errorDeviceUnreachable = 'error_device_unreachable';
   static const errorDeviceRead = 'error_device_read';
   static const errorDeviceTimeout = 'error_device_timeout';
+  static const errorDeviceClockFailed = 'error_device_clock_failed';
   static const errorDuplicateDeviceUser = 'error_duplicate_device_user';
 
   static const deviceTitle = 'device_title';

@@ -201,6 +201,7 @@
   "error_device_unreachable": "Cannot reach the terminal. Check the IP, the cable and the comm key.",
   "error_device_read": "Connected, but reading from the terminal failed",
   "error_device_timeout": "The terminal did not answer in time. Check the connection and try again.",
+  "error_device_clock_failed": "Could not set the terminal's clock",
   "error_duplicate_device_user": "That device user is already mapped to another employee",
   "device_title": "Fingerprint Terminal",
   "device_subtitle": "ZKTeco device on the local network",

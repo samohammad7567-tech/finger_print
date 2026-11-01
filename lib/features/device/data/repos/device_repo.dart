@@ -78,6 +78,8 @@ class DeviceRepo {
   /// arrive and are kept unmapped, and answering the question re-folds them, so
   /// the wait costs nothing but the delay.
   Future<DeviceSyncResult> sync(DeviceSettingsModel settings) async {
+    await _syncClockQuietly(settings);
+
     var imported = 0;
     var pending = 0;
     var users = const <ZkDeviceUserModel>[];
@@ -115,6 +117,18 @@ class DeviceRepo {
       employeesImported: result.employeesImported,
       employeesPendingReview: pending,
     );
+  }
+
+  /// Sets the terminal's clock from this PC at the start of every sync.
+  ///
+  /// Punch timestamps are the device's, not the app's, so a terminal whose
+  /// clock has drifted files attendance at the wrong time — and far enough
+  /// out, on the wrong day. Best-effort on purpose: a unit that refuses the
+  /// write must not cost the admin the punches the sync came for.
+  Future<void> _syncClockQuietly(DeviceSettingsModel settings) async {
+    try {
+      await _device.syncDeviceClock(settings);
+    } catch (_) {}
   }
 
   /// Pulls the enrolment list and creates everybody on it who is plainly new,

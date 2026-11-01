@@ -201,6 +201,7 @@
   "error_device_unreachable": "تعذر الوصول إلى الجهاز. تحقق من عنوان IP والكابل ومفتاح الاتصال.",
   "error_device_read": "تم الاتصال، لكن فشلت قراءة البيانات من الجهاز",
   "error_device_timeout": "لم يستجب الجهاز في الوقت المحدد. تحقق من الاتصال وحاول مرة أخرى.",
+  "error_device_clock_failed": "تعذر ضبط ساعة الجهاز",
   "error_duplicate_device_user": "معرّف المستخدم هذا مرتبط بموظف آخر بالفعل",
   "device_title": "جهاز البصمة",
   "device_subtitle": "جهاز ZKTeco على الشبكة المحلية",
